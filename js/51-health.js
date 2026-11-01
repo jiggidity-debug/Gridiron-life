@@ -1,0 +1,3 @@
+/* Gridiron Life modular base — 51-health.js. Current game mechanics match v0.4. */
+
+function impact(){let phase=PHASES[game.phase],dayTeam=phase.teamHours;let load=dayTeam*(.65+game.teamIntensity*.17)+game.plan.training*(.6+game.extraIntensity*.25)+(game.job?.physical?game.job.hours*.55:0);let gameLoad=game.phase===0?(game.role==='Starter'?8:game.role==='Rotation'?4:game.role==='Backup'?1:0):0;let endurance=cl((game.attrs.endurance||38)/80,.3,1.5), recovery=game.plan.recovery*(1+game.morale/260)*(1-game.stress/340);return {load,gameLoad,endurance,recovery,change:(load+gameLoad)/(endurance*15)-recovery*.34-1.7}}
