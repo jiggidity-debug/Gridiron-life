@@ -1,3 +1,13 @@
+# Gridiron Life v0.5 Part 8.3 — Mobile Game UI
+
+Fixed player header and bottom navigation; only the selected report scrolls. Contextual sub-tabs stay pinned above the scrollable report. The gameplay logic remains from 8.2. The registration form remains normal full-page scrolling.
+
+# Gridiron Life v0.5 Part 8.2 — Nested Tabs UI
+
+Navigation update built on Part 8.1. Each main gameplay tab displays a secondary row of section tabs directly below the main navigation. Selecting a subtab shows only that section; existing inputs and gameplay functions are unchanged. The registration sheet remains in its original form.
+
+Detailed pages can still scroll where needed. Save compatibility and progression logic are unchanged.
+
 # Gridiron Life — v0.5 Part 8: College Career Foundation
 
 This package contains the full offline browser game. It extends Part 7.2, which already provides the high-school football career, teams, playoff competition, health, grades, offseason events and player biographies.
