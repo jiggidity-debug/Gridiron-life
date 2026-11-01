@@ -1,0 +1,106 @@
+/* v0.5 Part 1: calendar, advancement and independent school-team season records. */
+function emptySquadRecords(){return {Freshman:[0,0],JV:[0,0],Varsity:[0,0]}}
+function sumRecord(records){return Object.values(records).reduce((tot,r)=>[tot[0]+r[0],tot[1]+r[1]],[0,0])}
+/* Schedule creation and matchup lookup are owned by 59-competition.js. */
+function currentRecord(){let l=depth().level;return game.squadRecords?.[l]||game.record||[0,0]}
+function seasonGames(year=game.year){return game.games.filter(g=>g.year===year&&g.phase===0)}
+function repairSeasonData(){
+  game.alumni=game.alumni||[];
+  game.seasonHistory=game.seasonHistory||[];
+  game.nextNpcId=game.nextNpcId||1000;
+  game.squadRecords=emptySquadRecords();
+  for(const g of seasonGames()){
+    const level=g.level&&game.squadRecords[g.level]?g.level:'Varsity';
+    game.squadRecords[level][g.win?0:1]++;
+  }
+  game.programRecord=seasonGames().filter(g=>!g.playoff).reduce((r,g)=>{r[g.win?0:1]++;return r},[0,0]);
+  game.record=currentRecord().slice();
+  if(!Array.isArray(game.schedule)||!game.schedule.length)game.schedule=createSchedule();
+  competitionState();
+  if(game.year>=2&&!game.team.some(x=>x.grade===9)){
+    // Old saves have no stable age history for players capped at grade 12.
+    // Preserve ambiguous seniors rather than silently deleting an actual current senior.
+    game.team.push(...makeFreshmen(5));
+    game.history.unshift({title:'v0.5 legacy roster migration',text:'Incoming ninth graders added. Older v0.4 seniors cannot be dated reliably and will graduate at the next scheduled school-year rollover.'});
+  }
+}
+function archiveFootballSeason(){
+  if(game.seasonHistory.some(s=>s.year===game.year))return;
+  game.seasonHistory.push({year:game.year,grade:game.grade,records:JSON.parse(JSON.stringify(game.squadRecords||emptySquadRecords())),games:seasonGames().length,postseason:game.competition?.postseason?{status:game.competition.postseason.status,districtPlace:game.competition.postseason.districtPlace,champion:game.competition.postseason.championId?findBracketTeam(game.competition.postseason,game.competition.postseason.championId)?.name:null,rounds:JSON.parse(JSON.stringify(game.competition.postseason.rounds)),teams:JSON.parse(JSON.stringify(game.competition.postseason.teams))}:null});
+}
+function startNextSchoolYear(){
+  if(game.grade>=12){game.finished=true;note('High school graduation. College career remains a future update; your records are preserved.');return}
+  const turnover=annualRosterTurnover();
+  game.grade++;game.year++;game.placement=null;
+  if(game.squadPreference==='Freshman'&&game.grade>9||game.squadPreference==='JV'&&game.grade>11)game.squadPreference='Auto';
+  const maturity=game.physicalType==='late'&&game.grade>=11?R(5,10):game.physicalType==='early'?R(0,2):R(2,5);
+  game.weight+=maturity;game.attrs.power=cl(game.attrs.power+Math.floor(maturity/3),20,99);
+  game.squadRecords=emptySquadRecords();game.programRecord=[0,0];game.record=[0,0];game.endFallAfterThisWeek=false;game.competition=null;game.schedule=[];game.schedule=createSchedule();
+  game.history.unshift({title:'School-year roster turnover',text:turnover.graduates+' seniors graduated; '+turnover.entrants+' freshmen arrived. You are entering grade '+game.grade+' for Year '+game.year+'.'});
+}
+/* Explain the existing stress formula; this report is informational and
+   does not alter the game's balancing constants. */
+function stressBreakdown(){
+  const academic=PHASES[game.phase].school&&strugglingCourses().length?2:0;
+  const intensity=Math.max(0,(game.teamIntensity+game.extraIntensity-3))*.9;
+  const extraTraining=Math.max(0,game.plan.training-15)*.22;
+  const job=game.job?game.job.hours*.065:0;
+  const family=game.familyExpect/85;
+  const social=game.plan.social*.27;
+  const recovery=game.plan.recovery*.20;
+  return {baseline:1,academic,intensity,extraTraining,job,family,social,recovery,
+    total:1+academic+intensity+extraTraining+job+family-social-recovery};
+}
+function applyWeek(){
+  let d=depth();game.role=d.role;
+  simulateSevenOnSevenWeek();
+  healthWeek();
+  summerState().fieldWorkloadThisWeek=0;
+  applyAcademicsWeek();
+  if(game.job){const wages=game.job.hours*game.job.rate;game.money+=wages;ledgerEntry('income',wages,game.job.title+' wages')}
+  if(game.transportWeeks>0)game.transportWeeks--; 
+  game.morale=cl(game.morale+game.plan.social*.14-game.stress*.012-(game.plan.training>16?1:0),0,100);
+  const stressParts=stressBreakdown(),stressBefore=game.stress;
+  game.stress=cl(game.stress+stressParts.total,0,100);
+  game.stressReports=game.stressReports||[];
+  game.stressReports.unshift({year:game.year,week:game.week,phase:PHASES[game.phase].name,
+    before:stressBefore,after:game.stress,...stressParts});
+  game.stressReports=game.stressReports.slice(0,80);
+  if(game.teamIntensity===0&&PHASES[game.phase].teamHours>0){game.coastingWeeks=(game.coastingWeeks||0)+1;if(game.coastingWeeks%3===0){game.coachTrust=cl(game.coachTrust-2,0,100);note('Coach trust -2: repeated minimum-effort practices.')}} else game.coastingWeeks=0;
+  game.gigHoursThisWeek=0;game.activityHoursThisWeek=0;
+  if(game.job&&Math.random()<.17)note('Your '+game.job.title+' shift went well. '+game.job.hours+' hours reserved, $'+game.job.hours*game.job.rate+' earned.');
+  development();
+
+  const endingPhase=game.phase,endingWeek=game.week;
+  const finishFall=endingPhase===0&&Boolean(game.endFallAfterThisWeek);
+  game.week++;game.yearWeeks++;
+  if(finishFall){finalizeSemester('Fall');finalizeSeasonAwards();}
+  if(endingPhase===2&&endingWeek===PHASES[2].weeks)finalizeSemester('Spring');
+  if(finishFall){game.endFallAfterThisWeek=false;advancePhase()}else if(game.week>PHASES[game.phase].weeks)advancePhase();
+  persist();
+}
+function advancePhase(){
+  let last=PHASES[game.phase].name;
+  if(game.phase===2){ // Spring ends: the previous year's seniors graduate before summer football.
+    archiveFootballSeason();startNextSchoolYear();
+    if(game.finished){persist();return}
+    game.phase=3;
+  }else if(game.phase===4){game.phase=0;game.week=1}
+  else {game.phase++;}
+  game.week=1;
+  note('Calendar transition: '+last+' → '+PHASES[game.phase].name+' · Year '+game.year+', grade '+game.grade+'. Schedule now allows '+hoursCap()+' discretionary hours.');
+  if(allHours()>hoursCap()){
+    let over=allHours()-hoursCap();
+    for(let k of ['social','training','recovery','study','work']){let cut=Math.min(over,game.plan[k]);game.plan[k]-=cut;over-=cut;if(!over)break}
+    while(focusTotal()>game.plan.training){let key=Object.keys(game.focus).find(k=>game.focus[k]>0);if(!key)break;game.focus[key]--}
+    if(over>0 && game.job){note('A recurring job conflicts with the new phase; it was ended to keep your schedule valid.');game.job=null;over=0}
+    note('Your discretionary schedule was reduced to fit the new phase; review commitments.');
+  }
+  game.scheduledEvent={title:'A new phase begins',body:'Your schedule and expectations have changed. Review your workload, school situation, and relationships before advancing.',choices:[['Review my priorities','You take time to consider what this phase means for your development.',1],['Talk with my family','Your family appreciates being included in your plans.',2]]};
+}
+function nextWeek(){
+  if(game.finished){note('Graduation reached. This build ends at the high-school boundary.');render();return}
+  if(game.scheduledEvent||game.gamePending){feedback='Resolve the current event or game before continuing.';render();return}
+  if(game.phase===0){if(!currentMatchup()){feedback='No game scheduled. Finish your current season before advancing.';render();return}game.gamePending=true;game.role=depth().role;note((currentMatchup().playoff?currentMatchup().round+' playoff':'Week '+game.week)+' game day. You must choose to simulate the game.');persist();render();return}
+  applyWeek();maybeEvent();render();
+}
