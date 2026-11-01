@@ -32,7 +32,7 @@ function migrate(){
     game.focus[GROUPS[pos][0][0]]=7;game.schedule=createSchedule();note('Imported older career and created a new school football roster.');persist();
   }catch(err){console.warn(err)}
 }
-function exportSave(){let blob=new Blob([JSON.stringify(game,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gridiron-life-v05-part7-save.json';a.click();URL.revokeObjectURL(a.href)}
+function exportSave(){let blob=new Blob([JSON.stringify(game,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gridiron-life-v05-part7-1-save.json';a.click();URL.revokeObjectURL(a.href)}
 function importSave(el){let file=el.files?.[0];if(!file)return;let r=new FileReader();r.onload=()=>{try{let g=JSON.parse(r.result);if(![4,5].includes(g.version)||!g.attrs||!g.plan)throw Error('Unsupported save');if(g.version===4)upgradeFromV4(g);else{game=g;schools=g.schools||schools;if(!game.squadRecords||!game.schedule)repairSeasonData();healthState();competitionState();awardsState();summerState();squadPrefs();persist()}render()}catch(err){alert('Could not import: '+err.message)}};r.readAsText(file)}
 
 function resetV5(){if(confirm('Reset this v0.5 career? Export your save first.')){localStorage.removeItem(KEY);game=null;render()}}

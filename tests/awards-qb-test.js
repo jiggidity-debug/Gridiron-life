@@ -4,7 +4,7 @@ const root=path.join(__dirname,'..');
 function boot(preload){
  const elements=new Map(),store=new Map(Object.entries(preload||{}));
  const document={getElementById(id){if(!elements.has(id)){
-  const value=id==='name'?'Casey':id==='position'?'QB':id==='bg'?'working':id==='school'?'0':id==='height'?'71':id==='weight'?'185':id==='a_iq'||id==='a_behavior'?'50':'38';
+  const value=id==='name'?'Casey':id==='position'?'QB':id==='bg'?'working':id==='school'?'0':id==='heightFeet'?'5':id==='heightInches'?'11':id==='weight'?'185':id==='a_iq'||id==='a_behavior'?'50':'38';
   elements.set(id,{value,innerHTML:'',textContent:'',style:{}})}return elements.get(id)}};
  const ctx=vm.createContext({console,Math,document,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},alert:s=>{throw Error(s)},confirm:()=>true});
  for(const f of fs.readdirSync(path.join(root,'js')).filter(x=>x.endsWith('.js')).sort())vm.runInContext(fs.readFileSync(path.join(root,'js',f),'utf8'),ctx,{filename:f});

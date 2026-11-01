@@ -10,7 +10,7 @@ function run(loadSave = null){
   const randomMath=Object.create(Math);
   randomMath.random=()=>.99999;
   const ctx=vm.createContext({Math:randomMath,console,document:{getElementById(id){
-    if(!elements.has(id))elements.set(id,{value:({name:'Jordan Carter',position:'RB',bg:'working',school:'0',height:'69',weight:'155',a_iq:'50',a_behavior:'50'})[id]||'38',style:{},textContent:'',innerHTML:''});
+    if(!elements.has(id))elements.set(id,{value:({name:'Jordan Carter',position:'RB',bg:'working',school:'0',heightFeet:'5',heightInches:'9',weight:'155',a_iq:'50',a_behavior:'50'})[id]||'38',style:{},textContent:'',innerHTML:''});
     return elements.get(id);
   }},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},alert:s=>{throw Error(s)},confirm:()=>true});
   for(const name of fs.readdirSync(path.join(root,'js')).filter(n=>n.endsWith('.js')).sort())vm.runInContext(fs.readFileSync(path.join(root,'js',name),'utf8'),ctx,{filename:name});

@@ -3,7 +3,7 @@ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),asse
 const root=path.resolve(__dirname,'..');
 function boot(saved){
  const store=new Map(saved||[]),elements=new Map();
- const ctx=vm.createContext({console,Math,document:{getElementById(id){if(!elements.has(id))elements.set(id,{value:({name:'Test QB',position:'QB',bg:'working',school:'0',height:'71',weight:'180',a_iq:'50',a_behavior:'50'})[id]||'38',innerHTML:'',textContent:'',style:{}});return elements.get(id);}},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},alert:s=>{throw Error(s)},confirm:()=>true});
+ const ctx=vm.createContext({console,Math,document:{getElementById(id){if(!elements.has(id))elements.set(id,{value:({name:'Test QB',position:'QB',bg:'working',school:'0',heightFeet:'5',heightInches:'11',weight:'180',a_iq:'50',a_behavior:'50'})[id]||'38',innerHTML:'',textContent:'',style:{}});return elements.get(id);}},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},alert:s=>{throw Error(s)},confirm:()=>true});
  for(const f of fs.readdirSync(path.join(root,'js')).filter(x=>x.endsWith('.js')).sort())vm.runInContext(fs.readFileSync(path.join(root,'js',f),'utf8'),ctx,{filename:f});
  return {eval:s=>vm.runInContext(s,ctx),state:()=>JSON.parse(JSON.stringify(vm.runInContext('game',ctx))),store,elements};
 }

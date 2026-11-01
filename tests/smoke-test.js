@@ -13,7 +13,8 @@ function sandbox(prefill = {}){
       if(id==='position')value='RB';
       if(id==='bg')value='working';
       if(id==='school')value='0';
-      if(id==='height')value='69';
+      if(id==='heightFeet')value='5';
+      if(id==='heightInches')value='9';
       if(id==='weight')value='155';
       if(id==='a_iq'||id==='a_behavior')value='50';
       elements.set(id,{value,innerHTML:'',textContent:'',style:{}});

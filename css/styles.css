@@ -4,3 +4,9 @@
 .store{display:flex;flex-direction:column;justify-content:space-between;gap:10px}
 .store p{margin:7px 0;font-size:13px}.store button{align-self:flex-start}
 @media(max-width:560px){.store-grid{grid-template-columns:1fr}}
+
+/* Part 7.1: clear creation-height and school profile controls. */
+.height-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.height-inputs label{margin:0}
+.school-metrics{margin:12px 0}.school-metric{background:#0e1c2d;padding:9px 12px;border-radius:9px}.school-metric .line{margin:0 0 8px}.school-metric .line span{font-size:13px}.school-metric strong{white-space:nowrap}
+.table-scroll{max-width:100%;overflow-x:auto}.selected-school{background:#29425b}details summary{cursor:pointer;color:#f1c875;font-weight:700;padding:7px 0}#remaining-points{margin:0 0 12px}
+@media(max-width:440px){.height-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}

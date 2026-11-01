@@ -6,11 +6,90 @@ function stat(label,val){return '<div class="tile"><div class="num">'+e(val)+'</
 
 function rang(label,v,min,max,func,detail=''){return '<div class="line"><span>'+label+'</span><strong>'+v+(detail||'')+'</strong></div><input aria-label="'+e(label)+'" type="range" min="'+min+'" max="'+max+'" value="'+v+'" oninput="'+func+'">'}
 
-function setupScreen(){return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">Version 0.5 (Part 7) · Player Career</span></div><h1>Create your freshman</h1><p class="muted">100 creation points. Every athlete starts with the same budget. Develop your attributes through actual practice and training afterward.</p>'+panel('Identity & family','<label>Player name<input id="name" type="text" value="'+e(draft.name)+'"></label><div class="grid"><label>Position<select id="position" onchange="setDraftPos(this.value)">'+Object.keys(GROUPS).map(p=>'<option '+(p===draft.position?'selected':'')+'>'+p+'</option>').join('')+'</select></label><label>Background<select id="bg">'+BG.map(b=>'<option value="'+b[0]+'" '+(b[0]===draft.bg?'selected':'')+'>'+b[1]+'</option>').join('')+'</select></label></div><label>School assignment<select id="school">'+schools.map((s,i)=>'<option value="'+i+'" '+(i===draft.school?'selected':'')+'>'+s.name+' · '+s.classif+'A · '+s.scheme+'</option>').join('')+'</select></label><div class="grid"><label>Height (inches)<input type="number" id="height" min="58" max="80" value="'+draft.height+'"></label><label>Weight (lbs)<input type="number" id="weight" min="110" max="280" value="'+draft.weight+'"></label></div>')+panel('Allocate attributes','<div class="line"><strong>Creation points used</strong><strong id="spent">0 / 100</strong></div>'+[...ATTRS,'iq','behavior'].map(k=>'<label class="line"><span>'+e(k==='iq'?'Academic intelligence':k==='behavior'?'Behavior / Coachability':k.replace(/\b\w/g,c=>c.toUpperCase()))+'</span><strong id="v_'+k+'">'+(draft.points[k]||50)+'</strong></label><input type="range" id="a_'+k+'" min="'+(['iq','behavior'].includes(k)?35:28)+'" max="'+(['iq','behavior'].includes(k)?85:70)+'" value="'+(['iq','behavior'].includes(k)?50:draft.points[k])+'" oninput="showBudget()">').join('')+'<p class="muted">Your physique and hidden maturation profile may change as you age. No visible potential grade in Player Career.</p><button onclick="start()">Start Freshman Career</button>');}
+function selectedSchoolStats(){
+  const si=Number(document.getElementById('school')?.value??draft.school);
+  const s=schools[si]||schools[0];
+  const run=Math.round(s.runRate*100);
+  const levels=levelsForSchool(s).join(' · ');
+  const attribute=(label,n)=>'<div class="school-metric"><div class="line"><span>'+e(label)+'</span><strong>'+Math.round(n)+'/100</strong></div><div class="meter"><i style="width:'+cl(n,0,100)+'%"></i></div></div>';
+  return '<p><strong>'+e(s.name)+'</strong> · '+s.classif+'A · '+e(s.scheme)+' offense</p>'+
+    '<p class="muted">Coach: '+e(s.coach)+' · Defensive scheme: '+e(s.defense)+' · Squads: '+e(levels)+'</p>'+
+    '<div class="grid school-metrics">'+[
+      attribute('Program strength / prestige',s.prestige),
+      attribute('Coaching quality',s.coaching),
+      attribute('Facilities',s.facilities),
+      attribute('Program expectations',s.expectations)
+    ].join('')+'</div>'+
+    '<p><strong>Offensive tendency:</strong> '+run+'% run · '+(100-run)+'% pass. These are the school\'s simulated tendencies, not your guaranteed playing time.</p>'+
+    '<details><summary>Compare all schools</summary><div class="table-scroll"><table><thead><tr><th>School</th><th>Class</th><th>Scheme</th><th>Prestige</th><th>Coach</th><th>Facilities</th></tr></thead><tbody>'+
+      schools.map((x,i)=>'<tr'+(i===si?' class="selected-school"':'')+'><td>'+e(x.name)+'</td><td>'+x.classif+'A</td><td>'+e(x.scheme)+'</td><td>'+x.prestige+'</td><td>'+x.coaching+'</td><td>'+x.facilities+'</td></tr>').join('')+
+    '</tbody></table></div></details>';
+}
+function showSchoolStats(){
+  const el=document.getElementById('school-profile');
+  if(el)el.innerHTML=selectedSchoolStats();
+  const chosen=Number(document.getElementById('school')?.value);
+  if(Number.isInteger(chosen)&&schools[chosen])draft.school=chosen;
+}
+function draftHeight(){
+  const ft=Number(document.getElementById('heightFeet').value);
+  const inches=Number(document.getElementById('heightInches').value);
+  if(!Number.isInteger(ft)||!Number.isInteger(inches)||inches<0||inches>11)return NaN;
+  return ft*12+inches;
+}
+function draftCost(attributeValues){
+  return ATTRS.reduce((sum,k)=>sum+Math.max(0,Number(attributeValues[k])-38),0)+
+    Math.max(0,Number(attributeValues.iq)-50)+Math.max(0,Number(attributeValues.behavior)-50);
+}
+function readCreationAttributes(){
+  const values={};for(const k of [...ATTRS,'iq','behavior'])values[k]=Number(document.getElementById('a_'+k).value);
+  return values;
+}
+function showBudget(changed){
+  // Sliders have a real shared 100-point budget: moving one cannot spend
+  // another slider's points. Players free points by lowering a stat first.
+  const values=readCreationAttributes();
+  if(changed&&changed.id?.startsWith('a_')){
+    const key=changed.id.slice(2),base=key==='iq'||key==='behavior'?50:38;
+    const others={...values,[key]:base};
+    const available=Math.max(0,100-draftCost(others));
+    const maxAllowed=base+available;
+    if(values[key]>maxAllowed){changed.value=String(maxAllowed);values[key]=maxAllowed;}
+  }
+  const cost=draftCost(values),spent=document.getElementById('spent');
+  spent.textContent=cost+' / 100';
+  spent.style.color=cost===100?'#77dfaf':'#f3c771';
+  const remaining=document.getElementById('remaining-points');
+  if(remaining)remaining.textContent=(100-cost)+' points available';
+  for(const k of [...ATTRS,'iq','behavior'])document.getElementById('v_'+k).textContent=values[k];
+  draft.points=Object.fromEntries(ATTRS.map(k=>[k,values[k]]));
+  draft.intelligence=values.iq;draft.behavior=values.behavior;
+  return cost;
+}
+function setupScreen(){
+  let feet=Math.floor(draft.height/12),inches=draft.height%12;
+  const ftOptions=[4,5,6].map(f=>'<option value="'+f+'"'+(f===feet?' selected':'')+'>'+f+' ft</option>').join('');
+  const inOptions=Array.from({length:12},(_,i)=>'<option value="'+i+'"'+(i===inches?' selected':'')+'>'+i+' in</option>').join('');
+  const identity='<label>Player name<input id="name" type="text" value="'+e(draft.name)+'"></label><div class="grid">'+
+    '<label>Position<select id="position" onchange="setDraftPos(this.value)">'+Object.keys(GROUPS).map(p=>'<option '+(p===draft.position?'selected':'')+'>'+p+'</option>').join('')+'</select></label>'+
+    '<label>Background<select id="bg">'+BG.map(b=>'<option value="'+b[0]+'" '+(b[0]===draft.bg?'selected':'')+'>'+b[1]+'</option>').join('')+'</select></label></div>'+
+    '<label>School assignment<select id="school" onchange="showSchoolStats()">'+schools.map((s,i)=>'<option value="'+i+'" '+(i===draft.school?'selected':'')+'>'+e(s.name)+' · '+s.classif+'A · '+e(s.scheme)+'</option>').join('')+'</select></label>'+
+    '<div class="grid"><div><label>Height</label><div class="height-inputs"><label>Feet<select id="heightFeet" aria-label="Height feet">'+ftOptions+'</select></label><label>Inches<select id="heightInches" aria-label="Height inches">'+inOptions+'</select></label></div><small>Allowed: 4 ft 10 in to 6 ft 8 in</small></div>'+
+    '<label>Weight (lbs)<input type="number" id="weight" min="110" max="280" value="'+draft.weight+'"></label></div>';
+  const attributeInputs=[...ATTRS,'iq','behavior'].map(k=>{
+    const baseline=k==='iq'||k==='behavior'?50:38;
+    const value=k==='iq'?draft.intelligence:k==='behavior'?draft.behavior:draft.points[k]??38;
+    return '<label class="line"><span>'+e(k==='iq'?'Academic intelligence':k==='behavior'?'Behavior / Coachability':k.replace(/\b\w/g,c=>c.toUpperCase()))+'</span><strong id="v_'+k+'">'+value+'</strong></label>'+
+      '<input aria-label="'+e(k)+' creation attribute" type="range" id="a_'+k+'" min="'+(baseline===50?35:28)+'" max="'+(baseline===50?85:70)+'" value="'+value+'" oninput="showBudget(this)">';
+  }).join('');
+  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">Version 0.5 (Part 7.1) · Player Career</span></div><h1>Create your freshman</h1>'+
+    '<p class="muted">You have 100 creation points. Sliders will stop when you reach the budget; lower another attribute to reallocate points.</p>'+
+    panel('Identity & family',identity)+panel('School profile · before you commit','<div id="school-profile">'+selectedSchoolStats()+'</div>')+
+    panel('Allocate attributes','<div class="line"><strong>Creation points used</strong><strong id="spent">0 / 100</strong></div><p id="remaining-points" class="muted">100 points available</p>'+attributeInputs+
+      '<p class="muted">Points above the baseline cost one each; lowering an attribute below baseline does not give extra points. Your hidden maturation profile can change as you age.</p><button id="start-career" onclick="start()">Start Freshman Career</button>');
+}
 
-function showBudget(){let cost=ATTRS.reduce((n,k)=>n+Math.max(0,(+document.getElementById('a_'+k).value)-38),0)+Math.max(0,(+document.getElementById('a_iq').value)-50)+Math.max(0,(+document.getElementById('a_behavior').value)-50);document.getElementById('spent').textContent=cost+' / 100';for(let k of [...ATTRS,'iq','behavior'])document.getElementById('v_'+k).textContent=document.getElementById('a_'+k).value;document.getElementById('spent').style.color=cost>100?'#ff9696':'#f3c771'}
-
-function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.5 Part 7 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['career','Career'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
+function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.5 Part 7.1 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['career','Career'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
 
 function healthPanel(compact=false){
   const h=healthState(),last=h.weekReports[0];
@@ -151,4 +230,4 @@ function historyScreen(){
     +panel('Save and backup','<p>Autosave for v0.5 Part 7 uses a separate browser save slot. Your original v0.4 save stays untouched for rollback. Export regularly before updating GitHub Pages.</p><div class="buttons"><button onclick="exportSave()">Export Save JSON</button><label style="max-width:240px">Import saved JSON<input type="file" accept="application/json" onchange="importSave(this)"></label><button class="alt" onclick="resetV5()">New Career</button></div>');
 }
 
-function render(){let el=document.getElementById('app');if(!game){el.innerHTML=setupScreen();showBudget();return}let content={career:careerScreen,team:teamScreen,develop:developScreen,life:lifeScreen,summer:summerScreen,history:historyScreen};el.innerHTML=commonHeader()+content[tab]()+('<footer>Gridiron Life v0.5 Part 7 · Offline, single-player prototype · Autosaved locally. Initial school rosters and rules are fictional.</footer>')}
+function render(){let el=document.getElementById('app');if(!game){el.innerHTML=setupScreen();showBudget();return}let content={career:careerScreen,team:teamScreen,develop:developScreen,life:lifeScreen,summer:summerScreen,history:historyScreen};el.innerHTML=commonHeader()+content[tab]()+('<footer>Gridiron Life v0.5 Part 7.1 · Offline, single-player prototype · Autosaved locally. Initial school rosters and rules are fictional.</footer>')}
