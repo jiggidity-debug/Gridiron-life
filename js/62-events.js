@@ -22,11 +22,19 @@ function maybeEvent(){
   if(game.plan.social>=2 && ok('teammate',10)){
     stories.push({kind:'teammate',title:'Teammate asks for help',body:'Marcus, a teammate, struggles with the playbook and asks you to review it together.',choices:[['Help Marcus after practice','Marcus thanks you for spending time together.',5],['Give him advice','Marcus appreciates your encouragement.',2],['Decline to help','Marcus is disappointed.',-3]]});
   }
+  if(game.phase===0&&ok('position',11)&&game.team.length){
+    const rival=positionRival();
+    if(rival){stories.push({kind:'position',npcId:rival.id,title:'Position room · competition with '+rival.name,
+      body:rival.name+' is competing for starts and practice reps. '+game.school.coach+' watches how you handle the competition.',
+      choices:[['Review film together','You and '+rival.name+' trade observations and work through the playbook.',4],
+        ['Compete respectfully','You challenge '+rival.name+' in practice and push each other.',2],
+        ['Dismiss the competition','You brush off '+rival.name+' and create tension.',-3]]});}
+  }
   if(game.teamIntensity<=1 && ok('practice',8) && game.phase!==3){
     stories.push({kind:'practice',title:'Coach notices your effort',body:game.school.coach+' notices you have been taking practices lightly. He wants to know if you are physically struggling or simply coasting.',choices:[['Explain recovery concerns','Coach agrees to discuss a more sustainable approach.',1],['Commit to more effort','Coach expects to see the change in the coming weeks.',2],['Dismiss the criticism','Coach is frustrated by your response.',-5]]});
   }
   if(!stories.length)return;
-  const ev=pick(stories);game.scheduledEvent=ev;game.eventLast[ev.kind]=now;
+  const ev=stories.find(s=>s.kind==='academic')||pick(stories);game.scheduledEvent=ev;game.eventLast[ev.kind]=now;
   note('Story event: '+ev.title);
 }
 function chooseEvent(i){
@@ -46,6 +54,12 @@ function chooseEvent(i){
     if(i===1)game.stress=cl(game.stress-3,0,100);
   }
   if(kind==='teammate'&&i===0)game.morale=cl(game.morale+2,0,100);
+  if(kind==='position'&&ev.npcId){
+    const person=game.team.find(x=>x.id===ev.npcId);
+    if(person){rememberTeammate(ev.npcId,c[1],i===0?5:i===1?1:-7,i===1?4:i===2?5:0);
+      game.coachTrust=cl(game.coachTrust+(i===0?1:i===1?1:-1),0,100);}
+  }
+
   if(kind==='practice'){
     if(i===0)game.stress=cl(game.stress-2,0,100);
     if(i===1)game.behavior=cl(game.behavior+1,0,99);

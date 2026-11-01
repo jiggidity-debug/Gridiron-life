@@ -1,46 +1,36 @@
-# Gridiron Life — v0.5 Part 2 (Roster + Life + Economy + Academics)
+# Gridiron Life v0.5 — Part 7: Squad Placement, Depth Charts & Teammate Memory
 
-This is a **complete, modular GitHub Pages build**. It includes the v0.5 Part 1 roster/calendar update and the new Part 2 changes.
+**Full build** includes all features from Parts 1–6. This is an offline, fictional high-school football career simulation. It is not an exact UIL eligibility or roster-management ruleset.
 
-## What is implemented
+## Part 7 — repaired team assignments
 
-**Part 1:** senior graduation, incoming freshmen, separate same-position freshman/JV/varsity depth charts and squad records, Year 2 transition before summer, named opponents, season records, v0.4 save migration to a new v0.5 slot.
+- **Coach-managed program-wide depth charts:** Players are evaluated for varsity, JV and freshman starting roles rather than being permanently promoted to an upper-squad bench just because they are old or highly rated. Sophomores and juniors who cannot start varsity can remain on JV as starters. Seniors remain varsity-only; school classification determines which squads exist.
+- **Malik scenario:** If an older, higher-rated QB is the best varsity option, he can win the varsity start over your younger player; your character isn't given the starter job automatically. If a player would otherwise be a reserve on varsity and is eligible for JV, he can start JV while dressing for varsity backup duty.
+- **Your choice:** On Career or Team, use **Squad placement → Coach decides / Request freshman / Request JV / Request varsity**. Your choice controls a *requested primary squad*, not a guaranteed starting job. The coach can decline an implausible upward promotion based on current readiness. You can also opt into higher-team backup dress duty.
+- **Dual-squad duty:** Eligible athletes can be listed as dressed backups one level above their primary team. Their lower-squad starts and game statistics remain intact. The current simulation records the higher-team dress designation but does **not yet** simulate a second independent set of upper-team offensive snaps or positional stats in the same week.
+- **Reviews:** The program sets depth charts at the start of the school year and evaluates them again at **Fall Week 6**. User requests can be revised outside a pending game; the current primary level and coach's explanation are visible. A request is not a promise of starts or playing time.
+- **Named start counts:** The Team tab records starts by squad and names the players dressing as upper-squad backups. Counts begin in **Part 7**. Old NPC games cannot be truthfully reconstructed and will not be retroactively counted.
+- **Playoffs:** Varsity-only postseason games no longer produce personal JV game statistics for players who aren't rostered on varsity. An eligible lower-squad backup can dress for varsity playoff games, but this build does not promise actual varsity offensive snaps.
 
-**Part 2:**
-- Cumulative GPA is posted only at fall and spring semester ends, not weekly; summer does not change ordinary grades.
-- Four course grades and academic preparedness respond to study, stress, and attendance.
-- Tutoring persists, uses **two of your allocated study hours**, and helps the lowest-graded subject. It doesn't directly increase GPA.
-- Academic warning events require an actual course below 70% and cannot recur every three weeks. Family and teammate stories have cooldowns.
-- Relationships are separated for family, teacher, teammate, and coach; practice effort can change coach trust; stress responds to overload and work.
-- Paid work, one-time gigs, and paid activities use actual discretionary hours. A gig's three hours are reserved until the next weekly tick.
-- Spend earned money on protective equipment, supplies, transportation, social time, family support, and an introductory offseason skill clinic. All purchases are recorded in the transaction journal. No money purchase grants a direct OVR boost.
-- A long-term purchased benefit is saved; repeat purchases are blocked where needed. Purchased gear modestly reduces an existing injury chance.
+## Part 7 — lasting teammate interactions
 
-## Upgrade from v0.4 or earlier v0.5
+The **Team** tab now contains **Your position room**. Visit individual NPC teammates to review film (2 hours), compete respectfully (2 hours), or encourage them (1 hour). These actions consume actual discretionary hours and may change personal rapport, competitive relationship, coach trust, preparedness, or stress. One visit per NPC per week. Repeated relationships and position-competition story decisions are stored in **History → Position-room memories**, even if teammates graduate. Story events involving a named rival can affect their rapport and coach trust; they do not override a major OVR difference or award free attribute points.
 
-1. Open the current game, go to **History > Save and backup > Export Save JSON**, and download a backup.
-2. **Extract the ZIP**. Upload its **contents**, not the ZIP file, to the root of your GitHub repository, preserving `js/`, `css/`, and `index.html`.
-3. Make the commit. Reload the GitHub Pages URL (hard-refresh if necessary).
-4. Existing `gridiron-life-v5` browser saves load automatically. If none exists, the original `gridiron-life-v4` save is imported **without replacing the v0.4 browser save**.
-5. You can also use **History > Import saved JSON** for an exported v0.4/v0.5 file.
+## Compatibility and boundaries
 
-**Key limitation:** This is still a prototype. Playoffs, full opponent player rosters, long-term career wear, awards, tournaments, and full 7-on-7 are **not implemented** in Part 2. The skill clinic is a lightweight spending activity, not the complete camp system. Player OVR balancing is also pending review (including an observed 80 OVR at senior-year start).
+- **Preserves existing v0.5 careers** under localStorage key `gridiron-life-v5`. Old Part 6 saves don't have historical NPC start counts; the new log starts when games are played on Part 7.
+- Your previous v0.4 save remains separately stored. Always **export your v0.5 JSON** before uploading a new build.
+- **Training formulas, no artificial OVR cap, academic rules, fatigue/wear, careers, playoffs, awards and offseason events remain intact.**
+- Squad assignments are position-group depth charts, **not full 22-position program rosters**. Named NPC stats across entire opponent leagues, injury substitution depth-chart simulations, and simultaneous dual-squad offensive snaps are not yet modeled. Team strength and playoff qualification follow the existing fictionalized rules.
 
-## Automated checks
+## Install on GitHub Pages
 
-Run `node tests/smoke-test.js` and `node tests/life-academics-economy-test.js` in the extracted project directory. Both should pass. UI rendering in an actual browser should still be tested after deployment.
+1. From your game, go to **History → Export Save JSON**. Save it somewhere safe.
+2. If your website already runs **v0.5 Part 6**, extract **Part 7 Update Only ZIP** and upload its contents to the repository. Otherwise use **Part 7 Full ZIP**.
+3. Upload file **contents** into the repository root, retaining `index.html`, `css/`, `js/`, and their subpaths. Overwrite matching files and commit.
+4. Refresh `https://jiggidity-debug.github.io/Gridiron-life/` with Ctrl+Shift+R. The header should say **v0.5 Part 7**.
+5. Verify **Career → Squad placement** and **Team → Position depth charts**, then continue your current career. No save reset is needed.
 
-## File structure
+## Tests
 
-- `index.html`: file-loading order
-- `css/styles.css`: styling
-- `js/10-roster.js`: cohorts and depth charts
-- `js/20-storage.js`: autosave and v0.4 import
-- `js/30-creation.js`: character setup
-- `js/40-schedule.js`: weekly time budgets
-- `js/52-academics.js`: course grades, tutoring, semester GPA
-- `js/60-calendar.js`: yearly phases, weekly simulation
-- `js/62-events.js`: conditional, remembered story events
-- `js/63-jobs.js`: recurring jobs and gigs
-- `js/64-economy.js`: purchases and ledger
-- `js/70-ui.js`: displays and life actions
+All eight Node test suites (including targeted squad-placement, start tracking, NPC memory, and legacy migration cases) pass. Chromium browser tests pass for QB Malik competition, requesting varsity/JV, backup dress duty, game and saved-history display, and mobile-sized rendering. This has not been deployed or verified on the user's public GitHub site; the user must upload it.

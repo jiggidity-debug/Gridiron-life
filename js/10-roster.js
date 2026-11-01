@@ -24,27 +24,134 @@ function annualRosterTurnover(){
   return {graduates:departing.length,entrants:5,names:departing.map(x=>x.name)};
 }
 
-/* Eligible grades: 12th graders play varsity, and freshman squad is only ninth graders.
-   Higher-performing ninth graders may be promoted to JV or varsity. */
-function depth(){
-  const levels=levelsForSchool(game.school),rows=[{id:'you',name:game.name,grade:game.grade,pos:game.pos,ovr:rating(game.attrs,game.pos)},...game.team.map(x=>({...x,ovr:rating(x.attrs,x.pos)}))];
-  const strength=x=>x.ovr+(x.id==='you'?game.coachTrust/100*3:0);
-  const sorted=rows.slice().sort((a,b)=>strength(b)-strength(a));
-  const squads={Freshman:[],JV:[],Varsity:[]},assigned=new Set();
-  // Seniors must be on varsity. Reserve additional varsity slots for exceptional younger players.
-  const seniors=sorted.filter(x=>x.grade===12);
-  const varsityCount=Math.max(6,seniors.length+2);
-  for(const x of seniors){squads.Varsity.push(x);assigned.add(x.id)}
-  for(const x of sorted){if(squads.Varsity.length>=varsityCount)break;if(!assigned.has(x.id)){squads.Varsity.push(x);assigned.add(x.id)}}
-  if(levels.includes('JV')){
-    for(const x of sorted){if(squads.JV.length>=7)break;if(!assigned.has(x.id)&&x.grade<=11){squads.JV.push(x);assigned.add(x.id)}}
+/* Part 7: program-wide position management.  One *primary* squad per athlete,
+   plus optional upper-squad dress duty.  Being an upper-squad reserve never
+   automatically removes a lower-squad starter's game opportunities.
+   Placement is reviewed at the start of each school year and in Fall W6. */
+const SQUAD_ORDER=['Freshman','JV','Varsity'];
+function placementScore(x){
+  // Coach trust is a small, transparent tiebreaker, not a human-player bonus.
+  let trust=x.id==='you'?(cl(game.coachTrust,0,100)-50)/50*1.5:0;
+  return x.ovr+(x.grade-9)*.35+trust;
+}
+function squadStamp(){return game.year+'-'+((game.phase===0&&game.week>=6)||game.phase===1||game.phase===2?'midseason':'opening')}
+function squadPrefs(){
+  if(!game.squadPreference)game.squadPreference='Auto';
+  if(typeof game.dualSquad!=='boolean')game.dualSquad=false;
+}
+function eligibleSquad(level,x,levels){
+  return levels.includes(level)&&(level==='Varsity'||(level==='JV'&&x.grade<=11)||(level==='Freshman'&&x.grade===9));
+}
+function computePlacement(){
+  squadPrefs();
+  const levels=levelsForSchool(game.school);
+  const roster=[{id:'you',name:game.name,grade:game.grade,pos:game.pos,attrs:game.attrs,ovr:rating(game.attrs,game.pos)},...game.team.map(x=>({...x,ovr:rating(x.attrs,x.pos)}))];
+  const score=x=>placementScore(x),ranked=roster.slice().sort((a,b)=>score(b)-score(a)||String(a.id).localeCompare(String(b.id)));
+  const you=roster[0],desired=game.squadPreference,primary={},starter={};
+  // Normal homes: grade 12 varsity; grades 10–11 JV; grade 9 freshman.
+  const home=x=>x.grade===12||levels.length===1?'Varsity':x.grade===9&&levels.includes('Freshman')?'Freshman':levels.includes('JV')?'JV':'Varsity';
+  roster.forEach(x=>primary[x.id]=home(x));
+  let accepted=desired==='Auto'?'Automatic coach placement':desired+' requested';
+  if(desired!=='Auto'){
+    if(!eligibleSquad(desired,you,levels)){
+      accepted=desired+' request unavailable for your grade and school classification';
+    }else if(desired==='Varsity'&&game.grade<12){
+      const varsityCandidates=ranked.filter(x=>x.grade>=10||x.ovr>=ranked.find(r=>r.grade===12)?.ovr+6);
+      const top=varsityCandidates[0]||ranked[0];
+      if(score(you)<score(top)-12){accepted='Varsity request declined: below the readiness range';}
+      else{primary.you='Varsity';accepted='Varsity request accepted: compete for the depth chart';}
+    }else if(desired==='JV'&&game.grade===9){
+      let typical=ranked.find(x=>x.grade===10)||ranked[0];
+      if(score(you)<score(typical)-10)accepted='JV request declined: coach recommends freshman development';
+      else {primary.you='JV';accepted='JV request accepted: compete for the depth chart';}
+    }else{primary.you=desired;accepted=desired+' request accepted';}
   }
-  for(const x of sorted){if(assigned.has(x.id))continue;let destination=levels.includes('Freshman')&&x.grade===9?'Freshman':levels.includes('JV')&&x.grade<=11?'JV':'Varsity';squads[destination].push(x);assigned.add(x.id)}
-  for(const key of Object.keys(squads))squads[key].sort((a,b)=>strength(b)-strength(a));
-  const level=levels.find(l=>squads[l].some(x=>x.id==='you'))||'Varsity';
-  const all=squads[level],rank=all.findIndex(x=>x.id==='you')+1;
+  // Higher-squad starters are chosen on football evaluation, not by who is
+  // player-controlled.  A request to stay lower removes that athlete from
+  // upper-squad STARTER selection; he can still dress as a reserve.
+  const seekingLower=x=>x.id==='you'&&desired!=='Auto'&&primary.you!== 'Varsity';
+  const vCandidates=ranked.filter(x=>!seekingLower(x)&&
+     (x.grade>=10||(!levels.includes('JV')&&!levels.includes('Freshman'))||
+      (x.grade===9&&score(x)>=score(ranked.find(y=>y.grade===12)||x)+6)));
+  const vStarter=vCandidates[0]||ranked[0];
+  primary[vStarter.id]='Varsity';starter.Varsity=vStarter.id;
+  if(levels.includes('JV')){
+    let jCandidates=ranked.filter(x=>x.id!==vStarter.id&&x.grade<=11&&
+      !(x.id==='you'&&((desired==='Freshman'&&primary.you==='Freshman')||(desired==='Varsity'&&primary.you==='Varsity')))&&
+      (x.grade>=10||primary[x.id]==='JV'||
+         (x.grade===9&&score(x)>score(ranked.find(y=>y.grade===10)||x)+5)));
+    const jStarter=jCandidates[0];
+    if(jStarter){primary[jStarter.id]='JV';starter.JV=jStarter.id;}
+  }
+  if(levels.includes('Freshman')){
+    const fStarter=ranked.find(x=>x.grade===9&&primary[x.id]==='Freshman');
+    if(fStarter)starter.Freshman=fStarter.id;
+  }
+  // A requested upper-squad role doesn't guarantee starting. Keep a senior
+  // on Varsity even if the program has a much better younger starter.
+  const squads={Freshman:[],JV:[],Varsity:[]};
+  for(const x of roster)squads[primary[x.id]].push(x);
+  for(const l of SQUAD_ORDER)squads[l].sort((a,b)=>
+    (a.id===starter[l]?-1:0)-(b.id===starter[l]?-1:0)||score(b)-score(a));
+  const dressed={Freshman:[],JV:[],Varsity:[]};
+  for(let i=1;i<levels.length;i++){
+    const upper=levels[i],lower=levels[i-1];
+    const options=squads[lower].filter(x=>eligibleSquad(upper,x,levels)&&
+      (x.id!=='you'||game.dualSquad));
+    // Best lower-squad players can cover higher-squad depth without losing
+    // their actual lower-squad starts. A player must opt into their own dual duty.
+    dressed[upper]=options.sort((a,b)=>score(b)-score(a)).slice(0,2).map(x=>x.id);
+  }
+  if(levels.includes('Varsity')&&levels.includes('Freshman')){
+    // Exceptional freshman JV starter can be a varsity emergency backup only
+    // with explicit opt-in; no hidden triple-duty assignment.
+    dressed.Varsity=dressed.Varsity.filter(id=>!dressed.JV.includes(id));
+  }
+  const myLevel=primary.you;
+  let myRank=squads[myLevel].findIndex(x=>x.id==='you')+1;
+  const vAbove=squads.Varsity[0];
+  const explanation=myLevel==='Varsity'&&myRank>1?
+    'Coach rates '+vAbove.name+' ('+vAbove.ovr+' OVR) above you for Varsity starter. Coach trust can only break close evaluations.':
+    myRank===1?'You currently lead the '+myLevel+' depth chart on evaluated ability and coach trust.':
+    'Your '+myLevel+' role is based on the current position evaluation; a higher OVR can outrank you.';
+  return {year:game.year,stamp:squadStamp(),primary,starter,dressed,decision:accepted,explanation,reviewWeek:game.week};
+}
+function squadState(){
+  if(!game)return null;
+  if(!game.placement||game.placement.stamp!==squadStamp()||game.placement.year!==game.year){
+    const previous=game.placement;
+    game.placement=computePlacement();
+    if(previous&&previous.year===game.year&&previous.stamp!==game.placement.stamp){
+      game.history=game.history||[];
+      game.history.unshift({title:'Year '+game.year+' · Midseason depth-chart review',text:'Coaches reassessed starters and upper-squad backup roles across the program. Check Team for your placement.'});
+    }
+  }
+  return game.placement;
+}
+function depth(){
+  let p=squadState(),levels=levelsForSchool(game.school);
+  const rows=[{id:'you',name:game.name,grade:game.grade,pos:game.pos,ovr:rating(game.attrs,game.pos)},...game.team.map(x=>({...x,ovr:rating(x.attrs,x.pos)}))];
+  const squads={Freshman:[],JV:[],Varsity:[]};
+  for(const x of rows)squads[p.primary[x.id]||'Varsity'].push(x);
+  for(const l of SQUAD_ORDER)squads[l].sort((a,b)=>
+    (a.id===p.starter[l]?-1:0)-(b.id===p.starter[l]?-1:0)||placementScore(b)-placementScore(a));
+  const level=p.primary.you||'Varsity',all=squads[level],rank=all.findIndex(x=>x.id==='you')+1;
   const role=rank===1?'Starter':rank===2?'Rotation':rank<=4?'Backup':'Reserve';
-  return {all,rank,level,role,squads,levels,allPlayers:sorted};
+  let dressLevel=levels.find(l=>p.dressed[l]?.includes('you'))||null;
+  return {all,rank,level,role,squads,levels,allPlayers:rows.slice().sort((a,b)=>placementScore(b)-placementScore(a)),
+    starters:p.starter,dressed:p.dressed,dressLevel,decision:p.decision,explanation:p.explanation};
+}
+function setSquadPreference(level){
+  if(!game||game.gamePending){feedback='Finish the pending game before changing your squad request.';render();return}
+  if(!['Auto','Freshman','JV','Varsity'].includes(level))return;
+  game.squadPreference=level;game.placement=null;
+  const d=depth();note('Squad preference updated: '+level+'. '+d.decision+'. Current assignment: '+d.level+' '+d.role+'.');persist();render();
+}
+function setDualSquad(enabled){
+  if(!game||game.gamePending){feedback='Finish the pending game before changing dual-squad duty.';render();return}
+  game.dualSquad=Boolean(enabled);game.placement=null;
+  const d=depth();note('Higher-squad backup duty '+(game.dualSquad?'requested':'declined')+'. '+(d.dressLevel?'Approved to dress for '+d.dressLevel+' while playing for '+d.level+'.':'No qualifying higher-squad backup opening currently.'));
+  persist();render();
 }
 
 let schools=schoolGen();

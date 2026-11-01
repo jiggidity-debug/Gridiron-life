@@ -10,7 +10,7 @@ function upgradeFromV4(old){
   game.plan=game.plan||{training:7,study:6,work:0,social:4,recovery:6};
   game.team=game.team||createRoster(game.school,game.pos);
   repairSeasonData();
-  academicState();socialState();
+  academicState();socialState();healthState();awardsState();summerState();squadPrefs();
   // In legacy v4 the next grade was applied at the END of preseason, not spring.
   if(game.phase===3||game.phase===4){archiveFootballSeason();startNextSchoolYear();}
   // No previous student roster histories exist in v4; we cannot know which grade-12
@@ -32,7 +32,7 @@ function migrate(){
     game.focus[GROUPS[pos][0][0]]=7;game.schedule=createSchedule();note('Imported older career and created a new school football roster.');persist();
   }catch(err){console.warn(err)}
 }
-function exportSave(){let blob=new Blob([JSON.stringify(game,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gridiron-life-v05-part2-save.json';a.click();URL.revokeObjectURL(a.href)}
-function importSave(el){let file=el.files?.[0];if(!file)return;let r=new FileReader();r.onload=()=>{try{let g=JSON.parse(r.result);if(![4,5].includes(g.version)||!g.attrs||!g.plan)throw Error('Unsupported save');if(g.version===4)upgradeFromV4(g);else{game=g;schools=g.schools||schools;if(!game.squadRecords||!game.schedule)repairSeasonData();persist()}render()}catch(err){alert('Could not import: '+err.message)}};r.readAsText(file)}
+function exportSave(){let blob=new Blob([JSON.stringify(game,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gridiron-life-v05-part7-save.json';a.click();URL.revokeObjectURL(a.href)}
+function importSave(el){let file=el.files?.[0];if(!file)return;let r=new FileReader();r.onload=()=>{try{let g=JSON.parse(r.result);if(![4,5].includes(g.version)||!g.attrs||!g.plan)throw Error('Unsupported save');if(g.version===4)upgradeFromV4(g);else{game=g;schools=g.schools||schools;if(!game.squadRecords||!game.schedule)repairSeasonData();healthState();competitionState();awardsState();summerState();squadPrefs();persist()}render()}catch(err){alert('Could not import: '+err.message)}};r.readAsText(file)}
 
 function resetV5(){if(confirm('Reset this v0.5 career? Export your save first.')){localStorage.removeItem(KEY);game=null;render()}}

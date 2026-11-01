@@ -1,11 +1,11 @@
 /* v0.5 Part 2: optional purchases and earned-money decisions, no direct OVR boosts. */
 const MARKET=[
- {id:'gear',name:'Properly fitted cleats & protective gear',price:125,hours:0,description:'One-time equipment purchase. Small reduction in avoidable practice discomfort and contact risk.',once:true},
+ {id:'gear',name:'Properly fitted cleats & protective gear',price:125,hours:0,description:'Permanent equipment: 25% lower calculated weekly injury probability, plus +2 morale when purchased. No direct OVR or game-stat boost.',once:true},
  {id:'books',name:'Study materials and practice tests',price:45,hours:1,description:'Academic preparation help for the current school term; does not instantly raise GPA.'},
  {id:'transport',name:'Transportation pass (8 weeks)',price:60,hours:0,description:'Makes getting to tutoring and community opportunities easier.'},
  {id:'social',name:'Weekend outing with friends',price:30,hours:2,description:'Build relationships and reduce stress; takes two hours of free time.'},
  {id:'family',name:'Contribute to household expenses',price:50,hours:0,description:'Support your family and improve the relationship at home.'},
- {id:'clinic',name:'Local football skill clinic',price:95,hours:6,description:'Offseason-only introductory clinic; adds a little position-skill progress, not free OVR.'}
+
 ];
 function ledgerEntry(type,amount,reason){
   game.ledger=game.ledger||[];
@@ -41,5 +41,6 @@ function buyItem(id){
   }
   ledgerEntry('expense',item.price,item.name);
   note('Spent $'+item.price+' on '+item.name+'. '+item.description);
+  if(id==='gear')feedback='Equipment equipped: −25% calculated weekly injury probability; +2 morale at purchase. No direct OVR boost.';
   persist();render();
 }
