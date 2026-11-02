@@ -52,21 +52,35 @@ function recruitingState(){
  if(!game)return null;
  if(!game.recruiting){game.recruiting={board:[],createdYear:0,stars:0,rank:null,offers:[],scouting:0};}
  const r=game.recruiting;
- if(!Array.isArray(r.board)||!r.board.length)r.board=Array.from({length:90},(_,i)=>({id:i+1,name:pick(FN)+' '+pick(LN),pos:pick(['QB','RB','WR','TE']),state:pick(['Texas','Florida','Ohio','Georgia','California','Louisiana']),score:cl(40+Math.round(Math.random()*52),40,92)}));
+ if(!Array.isArray(r.board)||r.board.length!==1600 || !r.boardVersion || r.boardVersion<2){
+  // A large national pool exists, but only 250 athletes receive published ranks.
+  // Top 250: 2 generational prospects at 77; 248 prospects between 58 and 76.
+  // Other 1,350 prospects are unranked, with ratings no higher than 57.
+  r.board=Array.from({length:1600},(_,i)=>({id:i+1,name:pick(FN)+' '+pick(LN),pos:pick(['QB','RB','WR','TE']),state:pick(['Texas','Florida','Ohio','Georgia','California','Louisiana']),score:i<2?77:i<250?58+Math.floor(Math.pow(Math.random(),.8)*19):28+Math.floor(Math.random()*30)}));
+  r.boardVersion=2;
+ }
+
  const recent=(game.games||[]).filter(x=>x.level==='Varsity');
  const varsity=recent.length;
  const impact=recent.length?Math.round(recent.slice(0,14).reduce((n,g)=>n+gameImpact(g),0)/Math.min(14,recent.length)):0;
  const awards=(game.awards?.earned||[]).filter(x=>x.kind!=='weekly').length;
  const exposure=game.summer?.exposure||game.summer?.totalExposure||game.exposure||0;
- const score=cl(Math.round(rating(game.attrs,game.pos)*.78+6+cl(impact/8,-7,15)+Math.min(10,varsity*.22)+Math.min(7,awards*1.4)+Math.min(6,Math.sqrt(Math.max(0,exposure))*.43)+(game.school.classif-1)*.5),15,99);
+ const score=cl(Math.round(rating(game.attrs,game.pos)*.82+4+cl(impact/16,-3,5)+Math.min(3,varsity*.12)+Math.min(3,awards*.5)+Math.min(2,Math.sqrt(Math.max(0,exposure))*.15)+(game.school.classif-1)*.25),10,80);
  r.scouting=score;
- r.stars=score>=88?5:score>=77?4:score>=63?3:score>=50?2:score>=36?1:0;
- r.rank=[...r.board.map(p=>p.score),score].sort((a,b)=>b-a).findIndex(x=>x===score)+1;
+ r.stars=score>=70?5:score>=65?4:score>=60?3:score>=55?2:score>=50?1:0;
+ const above=r.board.filter(p=>p.score>score).length;
+ r.rank=score>=58 && above<250 ? above+1 : null;
  if(!r.colleges||r.colleges.length<685)r.colleges=collegePrograms();
  // Offers are deterministic for a given score and program. Walk-on paths stay open.
  r.offers=r.colleges.map(p=>{
    const minimum=collegeOfferMinimum(p);
-   const offer=score>=minimum&&game.gpa>=(p.tier==='D3'?2.0:1.8)&&p.tier!=='D3';
+   const ability=rating(game.attrs,game.pos);
+   const minimumAbility=({FBS:70,FCS:65,D2:59,D3:55,NAIA:56,JUCO:55})[p.tier];
+   const minimumGPA=({FBS:2.5,FCS:2.3,D2:2.2,D3:2.6,NAIA:2.2,JUCO:1.9})[p.tier];
+   // JUCO primarily serves capable athletes needing an academic or recruiting reset;
+   // it is not a guaranteed destination for every weak high-school prospect.
+   const qualified=game.grade>=11 && varsity>=4 && ability>=minimumAbility && game.gpa>=minimumGPA;
+   const offer=qualified&&score>=minimum&&p.tier!=='D3';
    return {id:p.id,offer,scholarship:offer?cl(Math.round(35+(score-minimum)*2.5+(p.resources-50)*.15),35,100):0,interest:cl(Math.round(score-minimum+53),0,100),minimum};
  });
  return r;
@@ -349,13 +363,13 @@ let collegeRecruitPage=0;
 let collegeTransferTier='FBS';
 let collegeTransferPage=0;
 function recruitingScreen(){
- const r=recruitingState(),stand=[...r.board,{id:'you',name:game.name,pos:game.pos,state:game.hometown||'Home state',score:r.scouting}].sort((a,b)=>b.score-a.score),rank=stand.findIndex(x=>x.id==='you')+1;
+ const r=recruitingState(),stand=[...r.board,{id:'you',name:game.name,pos:game.pos,state:game.hometown||'Home state',score:r.scouting}].sort((a,b)=>b.score-a.score).slice(0,250),rank=stand.findIndex(x=>x.id==='you')+1;
  const tier=collegeTier(collegeViewTier),programs=r.colleges.filter(p=>p.tier===tier.code),available=programs.map(p=>({program:p,offer:r.offers[p.id]}));
  const scholarship=available.filter(x=>x.offer.offer),walkons=available.filter(x=>!x.offer.offer);
  const makeRows=(choices,walk)=>choices.slice(collegeRecruitPage*12,(collegeRecruitPage+1)*12).map(x=>'<div class="tile college-choice"><div><strong>'+e(x.program.name)+'</strong><br><small>'+e(x.program.conference)+' · '+e(tier.label)+' · Prestige '+x.program.prestige+' · Coaching '+x.program.coaching+' · Facilities '+x.program.facilities+'</small><br><small>'+(walk?'Walk-on / no athletic scholarship · Interest '+x.offer.interest+'/100': 'Scholarship '+x.offer.scholarship+'%')+'</small></div><button onclick="collegeSign('+x.program.id+','+walk+')">'+(walk?'Walk on':'Sign')+'</button></div>').join('');
- return panel('Recruiting profile · '+game.name,'<div class="grid">'+[['Recruiting stars',r.stars?'★'.repeat(r.stars)+'☆'.repeat(5-r.stars):'Unrated'],['Scouting score',r.scouting+'/99'],['Prospect board rank','#'+rank+' / '+stand.length],['Total scholarship offers',r.offers.filter(o=>o.offer).length]].map(x=>'<div class="tile"><small>'+e(x[0])+'</small><div class="num">'+e(x[1])+'</div></div>').join('')+'</div><p class="muted">685 fictional colleges across six levels. Division III does not offer athletic scholarships. JUCO is a two-season pathway into four-year programs.</p>')+
+ return panel('Recruiting profile · '+game.name,'<div class="grid">'+[['Recruiting stars',r.stars?'★'.repeat(r.stars)+'☆'.repeat(5-r.stars):'Unrated'],['Scouting score',r.scouting+'/99'],['Prospect board rank',rank>0?'#'+rank+' / Top 250':'Unranked'],['Total scholarship offers',r.offers.filter(o=>o.offer).length]].map(x=>'<div class="tile"><small>'+e(x[0])+'</small><div class="num">'+e(x[1])+'</div></div>').join('')+'</div><p class="muted">685 fictional colleges across six levels. Division III does not offer athletic scholarships. JUCO is a two-season pathway into four-year programs.</p>')+
  collegeTierSelect()+panel('Programs · '+e(tier.label),'<p>Showing page '+(collegeRecruitPage+1)+'; use the navigation below to browse all programs in this division.</p><div class="buttons"><button class="alt" '+(collegeRecruitPage<=0?'disabled':'')+' onclick="collegeRecruitPage=Math.max(0,collegeRecruitPage-1);render()">Previous programs</button><button class="alt" '+((collegeRecruitPage+1)*12>=Math.max(scholarship.length,walkons.length)?'disabled':'')+' onclick="collegeRecruitPage++;render()">Next programs</button></div><h3>Scholarship offers ('+scholarship.length+')</h3>'+(makeRows(scholarship,false)||'<p>No scholarship offers at this level.</p>')+'<h3>Walk-on / open enrollment ('+walkons.length+')</h3>'+(makeRows(walkons,true)||'<p>No additional programs.</p>'))+
- panel('Prospect leaderboard',stand.slice(0,12).map((p,i)=>'<div class="line"><span>#'+(i+1)+' · '+e(p.name)+' ('+e(p.pos)+')'+(p.id==='you'?' · YOU':'')+'</span><strong>'+p.score+'</strong></div>').join(''))+
+ panel('National Top 250 · leading prospects',stand.slice(0,12).map((p,i)=>'<div class="line"><span>#'+(i+1)+' · '+e(p.name)+' ('+e(p.pos)+')'+(p.id==='you'?' · YOU':'')+'</span><strong>'+p.score+'</strong></div>').join(''))+
  panel('THE GRIDIRON GAZETTE · Recruiting',recruitingNews().map(x=>'<div class="log"><strong>'+e(x.title)+'</strong><br>'+e(x.body)+'</div>').join(''));
 }
 function collegeScreen(){

@@ -48,7 +48,7 @@ assert.match(html,new RegExp('on '+expected+' attempts'));
 assert.match(g.playerProfile.snapshots[0].bio,/No football game statistics/);
 const firstSnapshot=JSON.stringify(g.playerProfile.snapshots[0]);
 t.ev('game.attrs.accuracy=90;game.progress.accuracy=0;render()');
-assert.match(t.el('app').innerHTML,/Accuracy \(90\)/);
+assert.match(t.el('app').innerHTML,/accuracy is exceptional at the high-school level/i);
 assert.equal(JSON.stringify(t.snap().playerProfile.snapshots[0]),firstSnapshot);
 // Replaying a milestone function doesn't produce a duplicate checkpoint.
 const before=t.snap().playerProfile.snapshots.length;

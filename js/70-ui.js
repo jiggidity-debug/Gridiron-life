@@ -89,7 +89,7 @@ function setupScreen(){
     return '<label class="line"><span>'+e(k==='iq'?'Academic intelligence':k==='behavior'?'Behavior / Coachability':k.replace(/\b\w/g,c=>c.toUpperCase()))+'</span><strong id="v_'+k+'">'+value+'</strong></label>'+
       '<input aria-label="'+e(k)+' creation attribute" type="range" id="a_'+k+'" min="'+(baseline===50?35:28)+'" max="'+(baseline===50?85:70)+'" value="'+value+'" oninput="showBudget(this)">';
   }).join('');
-  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.4 · Registration</span></div>'+
+  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.5.1 · Registration</span></div>'+
     '<div class="signup-masthead"><div class="signup-overline">INTERSCHOLASTIC ATHLETICS · INTAKE DOCUMENT</div><h1>Create your freshman</h1><p>High School Football Registration</p><div class="signup-stamp">FORM GL–09 · NEW STUDENT · ACADEMIC YEAR 1</div></div>'+
     '<section class="panel signup-sheet">'+identity+'</section>'+
     panel('03 · School profile & program evaluation','<p class="muted">Review the program you are registering for. School choice affects football opportunities and resources.</p><div id="school-profile">'+selectedSchoolStats()+'</div>')+
@@ -101,7 +101,7 @@ function setupScreen(){
     '<button id="start-career" onclick="start()">Submit Registration & Begin Career</button></section>';
 }
 
-function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.5 Part 8.4 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
+function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.5 Part 8.5.1 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
 
 function healthPanel(compact=false){
   const h=healthState(),last=h.weekReports[0];
@@ -113,7 +113,7 @@ function healthPanel(compact=false){
     '<p class="muted">No weekly health report yet. Your first report appears after a simulated week.</p>';
   const wearDetail=last?'<p class="muted">Last wear change: contact +'+(last.contactWear??0).toFixed(3)+' · excess fatigue +'+(last.overloadWear??0).toFixed(3)+' · injuries +'+(last.injuryWear??0).toFixed(3)+' · weekly healing −'+(last.wearRecovery??0).toFixed(3)+' points. Older weekly reports may show zero breakdown because the detail was not stored yet.</p>':'';
   const injuries=h.injuryHistory.length?'<details><summary>Injury history ('+h.injuryHistory.length+')</summary>'+h.injuryHistory.slice(0,12).map(i=>'<div class="log">'+e(i.name)+' · Year '+i.year+' '+e(i.phase)+' Week '+i.week+' · '+i.weeks+'-week absence</div>').join('')+'</details>':'';
-  return panel('Physical health · short-term and career wear',metrics+'<p><strong>'+e(wearLabel)+'</strong> · Career wear is a long-term 0–100 scale; higher is worse. Contact and injuries add wear; seasonal healing can reduce it. It does NOT reset when fatigue reaches zero.</p><p class="muted">At 35 wear, serious injuries may take longer to heal; at 65, longer still. Durability influences injury odds, not your endurance or OVR.</p>'+report+wearDetail+(compact?'':injuries));
+  return panel('Physical health',metrics+'<p><strong>'+e(wearLabel)+'</strong> · Career wear is a long-term 0–100 scale; higher is worse. Contact and injuries add wear; seasonal healing can reduce it. It does NOT reset when fatigue reaches zero.</p><p class="muted">At 35 wear, serious injuries may take longer to heal; at 65, longer still. Durability influences injury odds, not your endurance or OVR.</p>'+report+wearDetail+(compact?'':injuries));
 }
 
 function scoutReport(match){
@@ -139,7 +139,7 @@ function competitionPanels(){
   }).join('')+'</details>').join('');}
  return panel('District standings · '+game.school.classif+'A',
   '<p><strong>Playoff status: '+e(status.description)+'</strong></p><p class="muted">Fictional 8-school district. Top four qualify. Standings prioritize district wins and head-to-head results, then point difference. The postseason uses a fictional 64-team, six-round state bracket.</p>'+standings)
-  +panel('Regular-season schedule · '+c.regularWeeks+' games',sched)
+  +panel('Schedule · '+c.regularWeeks+' games',sched)
   +panel('State playoffs & bracket',bracket);
 }
 function homeScreen(){
@@ -149,7 +149,7 @@ function homeScreen(){
  const action=game.gamePending?'simulateGame()':'nextWeek()';
  return panel('This week',
  '<div class="grid">'+stat('Season',ph.name+' W'+game.week)+stat('Squad',d.level)+stat('Team record',record.join('–'))+stat('GPA',game.gpa.toFixed(2))+'</div>')+
- panel('Game day', '<div class="hub-match"><strong>'+e(game.school.name)+'</strong><span>VS</span><strong>'+e(opponent)+'</strong></div><div class="buttons"><button onclick="'+action+'">'+next+'</button><button class="alt" onclick="openSection(&#39;career&#39;,&#39;Your football career&#39;)">Game details</button></div>')+
+ panel('Game day', '<div class="hub-match"><strong>'+e(game.school.name)+'</strong><span>VS</span><strong>'+e(opponent)+'</strong></div>'+(match?'<div class="grid">'+stat('Strength',match.opponentStrength??match.strength??'—')+stat('Offense',match.opponentOffense??'—')+stat('Defense',match.opponentDefense??'—')+stat('Pass defense',match.opponentPassDefense??'—')+'</div>':'')+'<div class="buttons"><button onclick="'+action+'">'+next+'</button><button class="alt" onclick="openSection(&#39;career&#39;,&#39;Game day & career&#39;)">Game details</button></div>')+
  panel('Needs attention', (inj?'<div class="notice">Injury: '+e(inj.name)+' · '+inj.weeks+' weeks remaining</div>':'')+(game.scheduledEvent?'<div class="notice">Decision: '+e(game.scheduledEvent.title)+'</div>':'')+(!inj&&!game.scheduledEvent?'<p class="muted compact-label">No urgent alerts</p>':'')+
  '<div class="hub-shortcuts"><button class="alt" onclick="openSection(&#39;develop&#39;,&#39;Weekly availability&#39;)">Training</button><button class="alt" onclick="openSection(&#39;profile&#39;,&#39;Living player biography&#39;)">Player bio</button><button class="alt" onclick="openSection(&#39;recruiting&#39;)">Recruiting</button><button class="alt" onclick="openSection(&#39;team&#39;)">Team</button></div>')+
  panel('Recent result',last?'<strong>'+e(last.opponentName||'Opponent')+'</strong> · '+(last.win?'Win':'Loss')+' '+last.score+'–'+last.opp+'<div class="buttons"><button class="alt" onclick="openSection(&#39;career&#39;,&#39;Last game&#39;)">Game report</button></div>':'<p class="muted compact-label">No recorded games yet.</p>');
@@ -158,13 +158,11 @@ function openSection(destination,heading){tab=destination;render();if(heading){c
 function careerScreen(){
   let d=depth(),ph=PHASES[game.phase],record=currentRecord(),match=currentMatchup();
   let event=game.scheduledEvent?panel('Important decision','<div class="story"><h3>'+e(game.scheduledEvent.title)+'</h3><p>'+e(game.scheduledEvent.body)+'</p></div>'+game.scheduledEvent.choices.map((c,i)=>'<button class="choice" onclick="chooseEvent('+i+')">'+e(c[0])+'</button>').join('')):'';
-  let preview=game.phase===0&&match?scoutReport(match):'';
+  let preview=''; // Opponent strengths live on Home, not repeated in Career.
   let gp=game.finished?'<p><strong>High school career completed.</strong> Your history is preserved.</p>':game.gamePending?panel('Game Day · Week '+game.week,preview+'<p><strong>'+e(game.school.name)+'</strong> · '+e(d.level)+' · '+e(d.role)+(d.dressLevel?' · Also dresses '+e(d.dressLevel):'')+'</p><p>Coach '+e(game.school.coach)+' runs a '+e(game.school.scheme)+' offense ('+Math.round(game.school.runRate*100)+'% run). Current fatigue '+Math.round(game.fatigue)+'%.</p><button onclick="simulateGame()">Simulate This Game</button>'):preview+'<div class="buttons"><button onclick="nextWeek()">'+(game.phase===0?'Advance to Game Day':'Simulate Next Week')+'</button></div>';
   let last=game.games[0];
-  return event+squadChoicesPanel()+panel('Your football career','<p>'+e(game.school.name)+' · '+game.school.classif+'A · '+e(ph.name)+' · '+ph.capacity+' discretionary hours/week</p><div class="grid"><div class="tile"><strong>Depth chart: #'+d.rank+'</strong><br><small>'+e(d.role)+' on '+e(d.level)+'</small></div><div class="tile"><strong>'+e(d.level)+' season: '+record[0]+'–'+record[1]+'</strong><br><small>Coach trust '+Math.round(game.coachTrust)+'/100 · Other squads: Team tab</small></div></div><p class="muted">'+(game.injury?'Injured: '+game.injury.name+' ('+game.injury.weeks+' week(s) remaining)':'You are medically available.')+'</p>'+gp)
-  +panel('District & playoff picture','<p>'+e(seasonStatusText().description)+'</p><p class="muted">See Team for district rankings, opponents and playoff bracket.</p>')
-  +healthPanel(true)
-   +panel('Player biography','<p>'+e(profileBio().lead)+'</p><button class="alt" onclick="tab=&#39;profile&#39;;render()">Open full player profile</button>')
+  return event+panel('Game day & career','<p>'+e(game.school.name)+' · '+game.school.classif+'A · '+e(ph.name)+' · '+ph.capacity+' discretionary hours/week</p><div class="grid"><div class="tile"><strong>Depth chart: #'+d.rank+'</strong><br><small>'+e(d.role)+' on '+e(d.level)+'</small></div><div class="tile"><strong>'+e(d.level)+' season: '+record[0]+'–'+record[1]+'</strong><br><small>Coach trust '+Math.round(game.coachTrust)+'/100 · Other squads: Team tab</small></div></div><p class="muted">'+(game.injury?'Injured: '+game.injury.name+' ('+game.injury.weeks+' week(s) remaining)':'You are medically available.')+'</p>'+gp)
+
   +careerAwardSpotlight()
   +(last?panel('Last game · Year '+last.year+' Week '+last.week,'<h3>'+e(last.opponentName||'Opponent')+' · '+(last.win?'Win':'Loss')+' '+last.score+'–'+last.opp+'</h3><p>'+last.role+' · '+last.level+(last.upperDress?' · Dressed '+last.upperDress+' as backup':'')+' · '+gameStatsDescription(last,game.pos)+'</p>'+(last.honors?.length?'<p class="accent">'+last.honors.map(x=>e(x.title)).join(' · ')+'</p>':'')+'<details><summary>View your actual play log ('+last.plays.length+' events)</summary>'+(last.plays.length?last.plays.map(x=>'<div class="log">'+e(x)+'</div>').join(''):'<p>No recorded player involvement this week.</p>')+'</details>'):'')
   +panel('Latest career activity',game.history.slice(0,7).map(h=>'<div class="log"><strong>'+e(h.title)+'</strong><br>'+e(h.text)+'</div>').join(''));
@@ -177,12 +175,11 @@ function squadChoicesPanel(){
  const buttons=options.map(([v,label])=>'<button '+(selected===v?'class="active"':'class="alt"')+' onclick="setSquadPreference(\''+v+'\')">'+e(label)+'</button>').join('');
  const teammate=d.all.find(x=>x.id!=='you');
  const summary='<div class="grid"><div class="tile"><small>Primary game team</small><div class="num">'+e(d.level)+'</div><small>'+e(d.role)+' · position rank #'+d.rank+'</small></div><div class="tile"><small>Higher-team backup duty</small><div class="num">'+e(d.dressLevel||'None')+'</div><small>'+(d.dressLevel?'You can dress above your primary squad, but keep your normal primary-squad games.':'Not assigned to a second team')+'</small></div></div>';
- return panel('Squad placement · your choice & coach decision',
-  summary+'<p><strong>Coach decision:</strong> '+e(d.decision)+'</p><p>'+e(d.explanation)+'</p>'+
-  '<p class="muted">Request a primary squad below. It determines where you play games, not a guaranteed starting job. Eligibility is based on grade and school size. Coaches can decline unrealistic promotions. Seniors must play varsity.</p>'+
+ return panel('Squad placement',
+  summary+'<details class="inline-explanation"><summary aria-label="Why this squad assignment?" title="Coach decision details">? <span class="sr-only">Coach decision</span></summary><p>'+e(d.decision)+'</p><p>Choose a preferred squad; coaches decide the role. Grade and school size affect eligibility. Seniors play varsity.</p></details>'+
   '<div class="buttons">'+buttons+'</div>'+
   '<label style="display:block;margin-top:12px"><input type="checkbox" style="width:auto" '+(game.dualSquad?'checked':'')+' onchange="setDualSquad(this.checked)"> Request to dress for the next higher squad as a backup while still playing for my primary squad</label>'+
-  '<p class="muted">Dual duty does not guarantee varsity snaps. Upper-team backup appearances are shown separately in the game record. The coaching staff reviews depth charts at the start of the school year and Week 6 of the fall season.</p>'+
+
   (teammate?'<p class="muted">Closest '+e(d.level)+' competition: '+e(teammate.name)+' · '+teammate.ovr+' OVR. Coach trust may settle close evaluations, but your character gets no automatic starter priority.</p>':''));
 }
 function teamScreen(){
@@ -192,12 +189,12 @@ function teamScreen(){
     (d.dressed[l]?.length?'<p><strong>Dressing for '+l+' as backups while playing for a lower squad:</strong> '+d.dressed[l].map(id=>{const x=d.allPlayers.find(x=>x.id===id);return e(x?.name||id)+(id==='you'?' (YOU)':'')}).join(' · ')+'</p>':'')) .join('');
   let match=currentMatchup();
   return panel('Your school','<h3>'+e(s.name)+' · '+s.classif+'A</h3><p>'+e(s.coach)+' · '+e(s.scheme)+' offense · '+e(s.defense)+' defense</p><div class="grid">'+[['Prestige',s.prestige],['Coaching',s.coaching],['Facilities',s.facilities],['Run rate',Math.round(s.runRate*100)+'%'],['Star reliance',s.star+'%'],['Expectations',s.expectations]].map(v=>'<div class="tile"><small>'+v[0]+'</small><div class="num">'+v[1]+'</div></div>').join('')+'</div>')
-    +squadChoicesPanel()
     +panel('Squad records · Year '+game.year,'<p class="muted">Records reset each fall season and are preserved in History. Squads compete separately.</p><div class="grid">'+rows+'</div>')
-    +(game.phase===0&&match?panel('Opponent scouting',scoutReport(match)):'')
+
     +competitionPanels()
     +positionRoomPanel()
     +panel('Position depth charts','<p class="muted">Primary placement aims to give younger backups meaningful lower-team opportunities. Upper-squad dressed reserves remain on their primary team. Seniors play varsity only; available levels depend on school classification. *Starts are recorded from Part 7 onward; previous seasons cannot be reconstructed. This roster covers your position group, not full 22-player lineups.</p>'+charts)
+    +squadChoicesPanel()
     +panel('Program alumni','<strong>'+game.alumni.length+' graduated players</strong><p class="muted">Graduates are removed from active rosters and kept in school history.</p>'+(game.alumni.length?game.alumni.slice(-12).reverse().map(x=>'<div class="log">'+e(x.name)+' · '+e(x.pos)+' · '+x.ovr+' OVR · Finished Year '+x.graduatedAfterYear+'</div>').join(''):'No graduating class yet.'));
 }
 
@@ -253,21 +250,21 @@ function historyScreen(){
   return panel('Player biography archive','<p>Registration, milestones, and career snapshots are available in the Player Profile tab.</p><button class="alt" onclick="tab=&#39;profile&#39;;render()">View player profile and archive</button>')+awardsHistoryPanel()+summerHistoryPanel()+positionRoomHistory()+panel('Season records',seasons||'<p>Your completed school years will appear here.</p>')
     +panel('Season game log',games)
     +panel('Career journal',game.history.map(x=>'<div class="log"><strong>'+e(x.title)+'</strong><br>'+e(x.text)+'</div>').join(''))
-    +panel('Save and backup','<p>Autosave for v0.5 Part 8.4 uses a separate browser save slot from v0.4. Your original v0.4 save stays untouched for rollback. Export regularly before updating GitHub Pages.</p><div class="buttons"><button onclick="exportSave()">Export Save JSON</button><label style="max-width:240px">Import saved JSON<input type="file" accept="application/json" onchange="importSave(this)"></label><button class="alt" onclick="resetV5()">New Career</button></div>');
+    +panel('Save and backup','<p>Autosave for v0.5 Part 8.5.1 uses a separate browser save slot from v0.4. Your original v0.4 save stays untouched for rollback. Export regularly before updating GitHub Pages.</p><div class="buttons"><button onclick="exportSave()">Export Save JSON</button><label style="max-width:240px">Import saved JSON<input type="file" accept="application/json" onchange="importSave(this)"></label><button class="alt" onclick="resetV5()">New Career</button></div>');
 }
 
 function recruitmentHomeScreen(){return panel('College signing', '<p>High school is complete. Review offers and choose your next school.</p><button onclick="tab=\'recruiting\';render()">Review college offers</button>')+panel('Your career', '<button class="alt" onclick="tab=\'profile\';render()">Player profile</button>');}
 function collegeHomeScreen(){const c=collegeState();return panel('College dashboard','<div class="grid">'+stat('College year',c.year)+stat('Position',game.pos)+stat('OVR',rating(game.attrs,game.pos))+stat('Fatigue',Math.round(game.fatigue)+'%')+'</div>')+panel('Your program','<button onclick="tab=\'college\';render()">Open college football</button>')+panel('Career','<button class="alt" onclick="tab=\'profile\';render()">Player profile</button>');}
 function render(){
  let el=document.getElementById('app');if(!game){el.innerHTML=setupScreen();showBudget();return}
- const footer='<footer>Gridiron Life v0.5 Part 8.4 · Offline, fictional football universe · Saved locally · College simulation and eligibility are simplified.</footer>';
+ const footer='<footer>Gridiron Life v0.5 Part 8.5.1 · Offline, fictional football universe · Saved locally · College simulation and eligibility are simplified.</footer>';
  if(game.stage==='recruiting'){
    const nav='<div class="tabs"><button class="'+(tab==='home'?'active':'alt')+'" onclick="tab=\'home\';render()">Home</button><button class="'+(tab==='recruiting'?'active':'alt')+'" onclick="tab=\'recruiting\';render()">Recruiting & Signing</button><button class="alt" onclick="tab=\'profile\';render()">High School Profile</button><button class="alt" onclick="tab=\'history\';render()">History & Save</button></div>';
-   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.4 · Graduate</span></div><h1>'+e(game.name)+' · College recruitment</h1>'+nav+(tab==='home'?recruitmentHomeScreen():tab==='profile'?profileScreen():tab==='history'?historyScreen():recruitingScreen())+footer;return;
+   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.5.1 · Graduate</span></div><h1>'+e(game.name)+' · College recruitment</h1>'+nav+(tab==='home'?recruitmentHomeScreen():tab==='profile'?profileScreen():tab==='history'?historyScreen():recruitingScreen())+footer;return;
  }
  if(game.stage==='college'||game.stage==='collegeComplete'){
    const c=collegeState();const nav='<div class="tabs"><button class="'+(tab==='home'?'active':'alt')+'" onclick="tab=\'home\';render()">Home</button><button class="'+(tab==='college'?'active':'alt')+'" onclick="tab=\'college\';render()">College Football</button><button class="alt" onclick="tab=\'profile\';render()">Player Profile</button><button class="alt" onclick="tab=\'history\';render()">History / Save</button></div>';
-   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.4 · College Year '+c.year+'</span></div><h1>'+e(game.name)+' · '+e(game.pos)+'</h1>'+nav+(feedback?'<p class="notice">'+e(feedback)+'</p>':'')+(tab==='home'?collegeHomeScreen():tab==='history'?historyScreen():tab==='profile'?collegeProfilePanel()+profileScreen():collegeScreen())+footer;return;
+   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.5.1 · College Year '+c.year+'</span></div><h1>'+e(game.name)+' · '+e(game.pos)+'</h1>'+nav+(feedback?'<p class="notice">'+e(feedback)+'</p>':'')+(tab==='home'?collegeHomeScreen():tab==='history'?historyScreen():tab==='profile'?collegeProfilePanel()+profileScreen():collegeScreen())+footer;return;
  }
  let content={home:homeScreen,career:careerScreen,profile:profileScreen,team:teamScreen,develop:developScreen,life:lifeScreen,summer:summerScreen,recruiting:recruitingScreen,history:historyScreen};
  el.innerHTML=commonHeader()+content[tab]()+footer;

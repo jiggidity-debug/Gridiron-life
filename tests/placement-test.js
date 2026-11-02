@@ -52,7 +52,7 @@ t.evaluate('game.schedule=createSchedule();game.gamePending=true;simulateGame()'
 g=t.save();assert.equal(g.games[0].level,'JV');assert.equal(g.games[0].upperDress,'Varsity');
 assert.equal(g.positionStarts.you.JV,1);assert.equal(g.positionStarts.you.Varsity,0);
 assert.equal(g.positionStarts[malik].Varsity,1);
-assert.match(t.el.get('app').innerHTML,/Higher-team backup duty/);
+t.evaluate("tab='team';render()");assert.match(t.el.get('app').innerHTML,/Higher-team backup duty/);
 // Existing save restoration: cache retains choice and real primary/dress split.
 let stored=JSON.parse(t.data.get('gridiron-life-v5'));
 assert.equal(stored.squadPreference,'JV');assert.equal(stored.dualSquad,true);

@@ -43,8 +43,8 @@ function profileBio(){
   const registered=p.keys.includes('registration');
   const lead=registered?game.name+' entered '+first+' as a freshman '+game.pos+'.':game.name+' is a grade '+game.grade+' '+game.pos+' at '+school+'.';
   const history=schoolHistory.length>1?' The school record shows '+schoolHistory.length+' programs, most recently '+school+'.':'';
-  const physical=' Listed at '+Math.floor(game.height/12)+' ft '+game.height%12+' in and '+game.weight+' lb'+(game.hometown?' from '+game.hometown:'')+', the '+game.pos+' currently carries an '+r+' overall evaluation.';
-  const traitLine=' The highest-rated current attributes are '+traits.best.slice(0,2).map(x=>x.label+' ('+x.value+')').join(' and ')+'.';
+  const physical=' Listed at '+Math.floor(game.height/12)+' ft '+game.height%12+' in and '+game.weight+' lb'+(game.hometown?' from '+game.hometown:'')+', '+game.name+' is a '+(r>=65?'rare high-school talent':r>=55?'strong high-school prospect':r>=45?'developing high-school player':'raw prospect still building foundational skills')+'.';
+  const traitLine=' '+traits.best.slice(0,2).map(x=>{const v=x.value;const quality=v>=95?'elite':v>=90?'exceptional':v>=80?'outstanding':v>=70?'very strong':v>=60?'solid at the high school level':v>=50?'developing':v>=40?'limited':'a significant weakness';return x.label.toLowerCase()+' is '+quality+' at the '+(game.stage==='college'?'college':'high-school')+' level';}).join('; ')+'.';
   let experience=' No football game statistics have been recorded yet, so an on-field résumé is still developing.';
   if(all.games){
     const role=d.role==='Starter'?'is currently listed as a '+d.level+' starter':d.role==='Rotation'?'is currently in the '+d.level+' rotation':'is currently listed as a '+d.level+' '+d.role.toLowerCase();
@@ -105,7 +105,7 @@ function profileScreen(){
   const snapshotRows=p.snapshots.slice().reverse().map(x=>'<details class="profile-archive"><summary>Year '+x.year+' · Grade '+x.grade+' · '+e(x.title)+' · '+x.overall+' OVR</summary><p><small>'+e(x.school)+' · '+e(x.phase)+' · Week '+x.week+' · '+e(x.level)+' '+e(x.role)+'</small></p><p>'+e(x.bio)+'</p><small>Career stats at this checkpoint: '+e(profileStatLine(x.stats,game.pos))+'</small></details>').join('');
   const milestoneRows=p.milestones.slice().reverse().map(x=>'<div class="log"><strong>'+e(x.title)+'</strong><br><small>Year '+x.year+' · '+e(x.school)+' · '+e(x.phase)+' W'+x.week+'</small><p>'+e(x.description)+'</p></div>').join('');
   const traitsHtml='<div class="grid">'+traits.best.map(x=>'<div class="tile"><small>'+e(x.label)+'</small><div class="num">'+x.value+'</div></div>').join('')+'</div>';
-  return playerCard+panel('Living player biography','<p>'+e(b.lead)+'</p><p>'+e(b.body)+'</p><p class="muted">This narrative updates from recorded data. It does not award recruiting stars or invent accomplishments.</p>')+
+  return playerCard+panel('Living player biography','<p>'+e(b.lead)+'</p><p>'+e(b.body)+'</p>')+
     panel('Current scouting report','<p>'+e(b.scout)+'</p>'+traitsHtml+'<p class="muted">OVR and attribute evaluations are current; performance totals below come from recorded games.</p>')+
     panel('Career football statistics','<div class="grid">'+[['Recorded games',s.games],['Starts',s.starts],['Varsity starts',s.varsityStarts],['Wins',s.wins],['Playoff games',s.playoffGames],['Awards',game.awards?.earned?.length||0]].map(([a,v])=>'<div class="tile"><small>'+a+'</small><div class="num">'+v+'</div></div>').join('')+'</div><p><strong>'+e(game.pos)+' career:</strong> '+e(profileStatLine(s,game.pos))+'</p><p><strong>Current school year:</strong> '+e(profileStatLine(b.season,game.pos))+'</p>')+
     panel('Career milestones',milestoneRows||'<p>Milestones will appear as your career develops.</p>')+

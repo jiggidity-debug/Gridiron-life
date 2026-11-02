@@ -1,7 +1,23 @@
-# Gridiron Life v0.5 Part 8.4 — Home and Compact Help
+# Gridiron Life v0.5 Part 8.5.1 — UI and recruiting balance
 
-Full game source, including all earlier content. Part 8.4 adds a home hub, focused profile subtabs, and context help question marks instead of large permanent instructional paragraphs. No training, health, college, game or save formulas changed.
+- Profile biography stays visible in Biography; help holds explanation only.
+- Squad placement moved to Team, adjacent to position depth charts.
+- Next opponent team strength appears on Home; duplicate opponent scouting panel removed from Team.
+- Recruiting board expands to 1,600 persistent fictional prospects with realistic high-school talent ranges; 38 OVR freshmen are unranked and receive no offers.
+- Scholarships require junior/senior eligibility, varsity evidence, academics, and tier-specific ability thresholds. D3 requires at least 55 OVR and provides no athletic scholarships; JUCO needs 55 OVR and 1.9 GPA for consideration.
+- The national pool and gates are fictional gameplay balancing choices, not real NCAA recruiting requirements.
+- Saved recruiting boards from older builds are refreshed; prior offers are recalculated.
 
-Home is available from the lower navigation in high school, recruiting and college. Each stage uses a distinct dashboard. The Player Profile has named inner tabs for Biography, Scouting, Stats, Milestones, History and Background.
+## National recruiting leaderboard refinement
+- The published recruiting ranking is **Top 250 only**; unranked players are not labeled #251 or #1601.
+- Ranked fictional recruits are rated **58–76 OVR**, with **exactly two rare 77 OVR prospects** in the generated class.
+- Another 1,350 prospects exist outside the ranked list, keeping the recruiting world bigger than the visible Top 250.
+- Your player appears on the Top 250 only if their scouting evaluation actually qualifies.
+- Ratings are global game-world attributes; college competition remains stronger even for nationally ranked high-school players.
 
-Upload the contents of the Full ZIP to the root of your GitHub Pages repository; the Update ZIP contains only changed files relative to Part 8.3. Preserve the js and css folders.
+
+## Part 8.5.1 UI reconciliation
+- Home remains the dedicated next-opponent ratings screen. Career no longer duplicates the detailed opposing strength breakdown or separate health/playoff summaries.
+- Squad choices live on Team alongside the position depth chart. Coach reasoning is hidden behind a small `?` disclosure.
+- Player Profile biography is always visible in its Biography subtab; number-free trait prose has corrected grammar.
+- Regression tests now target the 1,600-prospect pool and revised screen ownership.

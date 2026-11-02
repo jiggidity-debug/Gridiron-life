@@ -11,8 +11,8 @@ let t=sim();t.ev('start()');
 t.ev('game.grade=12;game.year=4;game.attrs.accuracy=84;game.attrs.awareness=82;game.attrs.arm=79;game.gpa=3.3;game.games.unshift({year:4,week:1,phase:0,level:"Varsity",role:"Starter",win:true,score:24,opp:14,opponentName:"Cedar Valley Lions",stats:{passAtt:30,passComp:25,passYards:270,passTD:3,interceptions:0},plays:[]});startNextSchoolYear();render()');
 let g=t.snap();assert.equal(g.stage,'recruiting');assert.equal(g.finished,false);assert.equal(g.college,undefined);
 assert.match(t.el('app').innerHTML,/Scholarship offers/);
-assert.equal(g.recruiting.colleges.length,685);assert.equal(g.recruiting.board.length,90);
-assert(g.recruiting.stars>=1);assert(g.recruiting.offers.some(x=>x.offer));
+assert.equal(g.recruiting.colleges.length,685);assert.equal(g.recruiting.board.length,1600);
+assert(g.recruiting.stars>=0);assert.equal(g.recruiting.offers.length,685); // Offers are earned, not guaranteed.
 const id=g.recruiting.offers.find(x=>x.offer&&g.recruiting.colleges[x.id].tier==='FBS')?.id ?? g.recruiting.colleges.find(x=>x.tier==='FBS').id;
 t.ev('collegeSign('+id+','+(g.recruiting.offers[id].offer?'false':'true')+')');g=t.snap();assert.equal(g.stage,'college');assert.equal(g.college.year,1);assert.equal(g.college.schedule.length,12);assert.equal(g.college.roster.length,6);
 assert.equal(g.games.length,1,'previous high school stats survive');assert.match(t.el('app').innerHTML,/College football/);

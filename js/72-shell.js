@@ -1,4 +1,4 @@
-/* Part 8.3: fixed mobile-game shell. Game simulation is unchanged. */
+/* Part 8.5.1: fixed mobile-game shell. Game simulation is unchanged. */
 (function(){
  const previous=render;
  let lastTab=null,lastStage=null,scrolls={};
