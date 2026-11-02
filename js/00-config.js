@@ -9,4 +9,4 @@ const BG=[['working','Working-class household',75,8,'Limited resources; family m
 const SCHEMES=[['Wishbone',.80,.45],['Power Run',.72,.62],['Pro Style',.55,.55],['Spread',.41,.60],['Air Raid',.25,.64],['West Coast',.44,.57]];
 const NAMES=['Westfield Wolves','Briar Creek Bears','Oak Ridge Eagles','Northgate Knights','Cedar Valley Lions','Red Rock Raiders','Hampton Hawks','Pine Lake Panthers','Summit Tigers','Eastbrook Mustangs'];
 const FN=['Marcus','Devon','Andre','Jaylen','Evan','Malik','Cameron','Noah','Tyler','Elijah','Devin','Darius'],LN=['Davis','Walker','Jones','Harris','Thomas','Carter','Brooks','Young','Reed','Turner','Jackson','Williams'];
-let game=null,tab='career',draft={name:'Jordan Carter',position:'RB',bg:'working',school:0,points:{},intelligence:50,behavior:50,height:69,weight:155},feedback='';
+let game=null,tab='home',draft={name:'Jordan Carter',position:'RB',bg:'working',school:0,points:{},intelligence:50,behavior:50,height:69,weight:155},feedback='';

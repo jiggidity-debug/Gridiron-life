@@ -70,3 +70,19 @@ body.game-shell-active main#app{height:100dvh;width:100%;max-width:950px;display
 .shell-bottom button .shell-icon{font-size:19px;line-height:22px;color:inherit}
 @media(min-width:800px){.shell-bottom button{max-width:none}.shell-header .logo{font-size:20px}.shell-scroll{padding:8px 14px 24px}}
 @media(max-width:400px){body.game-shell-active main#app{padding:0 5px}.shell-header{padding:7px 6px}.shell-bottom button{flex-basis:67px;min-width:67px;font-size:9px}}
+
+/* Part 8.4 — compact dashboard and opt-in contextual help */
+.hub-match{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0 16px;font-size:15px}
+.hub-match span{font-size:11px;font-weight:900;color:#eec56b}
+.hub-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.hub-shortcuts button{font-size:12px;padding:12px 9px}
+.compact-label{font-size:13px;margin:4px 0}
+.panel>h2{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.section-help{position:relative;margin-left:auto;flex:none;font-size:13px;font-weight:400}
+.section-help>summary{list-style:none;display:grid;place-items:center;border:1px solid #6a8198;border-radius:50%;width:26px;height:26px;color:#f3cb72;cursor:pointer;font-weight:900;font-size:15px;background:#233a50;padding:0}
+.section-help>summary::-webkit-details-marker{display:none}
+.section-help[open]>.section-help-body{position:absolute;z-index:20;top:33px;right:0;width:min(315px,78vw);max-height:45vh;overflow:auto;padding:13px;background:#243d55;border:1px solid #9cb2c5;border-radius:10px;box-shadow:0 9px 28px #000a;color:#e8f0f8;font-size:13px;line-height:1.4}
+.section-help-body p{margin:0 0 9px}
+.section-help-body p:last-child{margin-bottom:0}
+.shell-scroll>.panel{padding:13px 14px}.shell-scroll>.panel h2{font-size:17px;margin-bottom:9px}
+.shell-scroll>.panel p{margin:7px 0}.shell-scroll>.panel .tile{padding:10px}

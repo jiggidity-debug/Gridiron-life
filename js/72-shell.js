@@ -28,7 +28,7 @@
   Array.from(primary.querySelectorAll('button')).forEach(button=>{
     const b=button.cloneNode(true);b.classList.toggle('selected',button.classList.contains('active'));
     const label=b.textContent.trim();b.innerHTML='';
-    const ico=document.createElement('span');ico.className='shell-icon';ico.textContent=({Career:'⌂','Player Profile':'♙',Team:'♜',Development:'↗',Life:'♥',Offseason:'☀',Recruiting:'★',History:'▤','College Football':'🏈','History / Save':'▤','Recruiting & Signing':'★','High School Profile':'♙'}[label]||'•');
+    const ico=document.createElement('span');ico.className='shell-icon';ico.textContent=({Home:'⌂',Career:'🏈','Player Profile':'♙',Team:'♜',Development:'↗',Life:'♥',Offseason:'☀',Recruiting:'★',History:'▤','College Football':'🏈','History / Save':'▤','Recruiting & Signing':'★','High School Profile':'♙'}[label]||'•');
     const txt=document.createElement('span');txt.textContent=label;b.append(ico,txt);
     b.addEventListener('click',()=>{if(button.onclick)button.onclick();else button.click();});
     bottom.appendChild(b);
