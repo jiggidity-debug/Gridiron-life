@@ -83,6 +83,11 @@ function recruitingState(){
    const offer=qualified&&score>=minimum&&p.tier!=='D3';
    return {id:p.id,offer,scholarship:offer?cl(Math.round(35+(score-minimum)*2.5+(p.resources-50)*.15),35,100):0,interest:cl(Math.round(score-minimum+53),0,100),minimum};
  });
+ // Recruiters offer to a limited subset of fitting programs, not hundreds at once.
+ const maxOffers=game.grade<11?0:game.grade===11?Math.min(6,Math.max(0,Math.floor((score-49)/4))):Math.min(18,Math.max(0,Math.floor((score-43)/2)));
+ const eligible=r.offers.filter(o=>o.offer).sort((a,b)=>{const pa=r.colleges[a.id],pb=r.colleges[b.id];return Math.abs(pa.prestige-score)-Math.abs(pb.prestige-score)||b.interest-a.interest||a.id-b.id;});
+ const selected=new Set(eligible.slice(0,maxOffers).map(o=>o.id));
+ r.offers.forEach(o=>{if(o.offer&&!selected.has(o.id)){o.offer=false;o.scholarship=0;}});
  return r;
 }
 function recruitingNews(){
@@ -90,8 +95,9 @@ function recruitingNews(){
  const sorted=[...r.board].sort((a,b)=>b.score-a.score);
  out.push({title:'Recruiting board: '+sorted[0].name+' leads the class',body:sorted[0].pos+' prospect from '+sorted[0].state+' enters the week with the strongest current scouting evaluation.'});
  const offers=r.offers.filter(o=>o.offer);
- if(offers.length)out.push({title:game.name+' draws college attention',body:offers.length+' fictional college program(s) have extended scholarship interest. The offer list is visible in Recruiting.'});
- else out.push({title:game.name+' remains on the recruiting radar',body:'No scholarship offers yet. Walk-on opportunities remain available after graduation.'});
+ if(offers.length)out.push({title:game.name+' earns college offers',body:game.name+' has received '+offers.length+' formal scholarship offer'+(offers.length===1?'':'s')+' after meeting recruiting requirements. Scouting interest is not a scholarship.'});
+ else if(game.grade<11)out.push({title:'Regional scouts monitor developing athletes',body:game.name+' continues to develop at '+game.school.name+'. No formal college offers have been issued at this stage.'});
+ else out.push({title:game.name+' seeks first college offer',body:'Scouting interest continues, but no formal scholarship offers have been issued. Walk-on paths may be available after graduation.'});
  return out;
 }
 function collegeReadyFromGraduation(){
@@ -186,7 +192,22 @@ function collegeGenerateStats(role,opp,forceOut=false){
  const active=!forceOut&&!game.injury;
  const share=!active?0:role==='Starter'?0.86:role==='Rotation'?.34:.09;
  const offense=cl(Math.round(59+(c.program.prestige-opp.prestige)/5),40,82);
- const attempts=game.pos==='QB'?Math.round(offense*.55*share):game.pos==='RB'?Math.round(offense*.43*share):Math.round(offense*.22*share);
+ const attempts=game.pos==='QB'?Math.round(offense*.55*share):['RB','FB'].includes(game.pos)?Math.round(offense*(SCHEMES.find(x=>x[0]===c.program.scheme)?.[1]??.50)*.57*share):Math.round(offense*(1-(SCHEMES.find(x=>x[0]===c.program.scheme)?.[1]??.50))*.32*share);
+ if(active&&DEFENSIVE_POSITIONS.includes(game.pos)){
+   const snaps=Math.round(offense*share),tackles=Math.round(snaps*cl(.07+(game.attrs.vision-45)/650,.03,.16));
+   Object.assign(stats,{defSnaps:snaps,tackles,tfl:Math.round(tackles*.17),sacks:['DE','DT','NT','OLB'].includes(game.pos)?Math.round(snaps*.027):0,passDef:['CB','FS','SS'].includes(game.pos)?Math.round(snaps*.035):0,defInt:0});
+   plays.push('Defense: '+tackles+' tackles over '+snaps+' snaps.');return {stats,plays};
+ }
+ if(active&&LINEMEN.includes(game.pos)){
+   const snaps=Math.round(offense*share);Object.assign(stats,{offSnaps:snaps,blocks:Math.round(snaps*.56),pressures:Math.round(snaps*.07)});
+   plays.push('Offensive line: '+snaps+' snaps.');return {stats,plays};
+ }
+ if(active&&SPECIAL_POSITIONS.includes(game.pos)){
+   if(game.pos==='K')Object.assign(stats,{fgAtt:2,fgMade:1,xpAtt:3,xpMade:3});
+   if(game.pos==='P')Object.assign(stats,{punts:4,puntYards:152});
+   if(game.pos==='LS')Object.assign(stats,{longSnaps:7});
+   plays.push('Special teams appearance.');return {stats,plays};
+ }
  const competition=Math.max(-.18,Math.min(.18,(rating(game.attrs,game.pos)-opp.prestige)/180));
  for(let i=0;i<attempts;i++){
   if(game.pos==='QB'){

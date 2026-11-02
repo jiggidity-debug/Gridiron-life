@@ -8,6 +8,11 @@ function awardsState(){
 }
 function gameStatsDescription(g,pos){
   const s=g.stats||{},isQB=pos==='QB'||(s.passAtt||0)>0||((s.passYards||0)>0);
+  if(DEFENSIVE_POSITIONS.includes(pos))return `${s.tackles||0} tackles, ${s.tfl||0} TFL, ${s.sacks||0} sacks, ${s.passDef||0} passes defended, ${s.defInt||0} interceptions; ${s.defSnaps||0} defensive snaps.`;
+  if(LINEMEN.includes(pos))return `${s.offSnaps||0} offensive snaps, ${s.blocks||0} successful blocks, ${s.pressures||0} pressures allowed.`;
+  if(pos==='K')return `${s.fgMade||0}/${s.fgAtt||0} field goals, ${s.xpMade||0}/${s.xpAtt||0} PAT.`;
+  if(pos==='P')return `${s.punts||0} punts, ${s.puntYards||0} punt yards.`;
+  if(pos==='LS')return `${s.longSnaps||0} long snaps.`;
   if(isQB){
     const att=s.passAtt||0,comp=s.passComp||0,yds=s.passYards||0;
     return `${comp}/${att} passing, ${yds} pass yards, ${s.passTD||0} pass TD, ${s.interceptions||0} INT; ${s.carries||0} rushes, ${s.rushYards||0} rush yards.`;
@@ -19,6 +24,9 @@ function gameImpact(g){
   const qb=game.pos==='QB';
   // Numbers are derived from football production, not player overall.
   // A position-neutral normalized yardage and scoring value for this prototype.
+  if(DEFENSIVE_POSITIONS.includes(game.pos))return Math.round((s.tackles||0)*13+(s.tfl||0)*24+(s.sacks||0)*42+(s.passDef||0)*20+(s.defInt||0)*65+(g.win?12:0));
+  if(LINEMEN.includes(game.pos))return Math.round((s.blocks||0)*5-(s.pressures||0)*10+(g.win?12:0));
+  if(SPECIAL_POSITIONS.includes(game.pos))return Math.round((s.fgMade||0)*40+(s.xpMade||0)*8+(s.puntYards||0)*.9+(s.longSnaps||0)*4);
   const y=qb?(s.passYards||0)*.80+(s.rushYards||0):(s.rushYards||0)+(s.recYards||0)*1.10;
   const td=qb?(s.passTD||0)+(s.rushTD||0):(s.rushTD||0)+(s.recTD||0);
   const turnover=qb?(s.interceptions||0)*20:0;

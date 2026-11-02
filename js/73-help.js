@@ -1,4 +1,4 @@
-/* Part 8.5.1: optional help, concise panels, no gameplay state changes. */
+/* Part 8.6: optional help, concise panels, no gameplay state changes. */
 (function(){
  const prior=render;
  const helpHints={

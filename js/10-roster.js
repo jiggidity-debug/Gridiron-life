@@ -1,6 +1,13 @@
 /* v0.5 Part 1: persistent same-position cohorts and level-specific depth charts.
    Full 22-player lineups for every school are a later football-simulation update. */
-function schoolGen(){return NAMES.map((name,i)=>{let scheme=pick(SCHEMES),classif=R(1,6),prestige=R(25,90);return {id:i,name,classif,prestige,coaching:cl(prestige+R(-21,20),20,95),facilities:cl(prestige+R(-25,23),18,96),scheme:scheme[0],runRate:scheme[1],star:R(20,95),defense:pick(['4-3','3-4','4-2-5','3-3-5','4-4']),coach:pick(['Coach Mason','Coach Brooks','Coach Williams','Coach Rivera','Coach Thompson']),expectations:R(35,90)}})}
+function schoolGen(){
+  const extra=['Silver Creek Falcons','Mesa Ridge Coyotes','Riverbend Wildcats','Copper Hill Bulldogs','Lone Star Stallions','Golden Prairie Buffaloes','Clearwater Mariners','Ironwood Rams','Southpoint Panthers','Cypress Bend Cardinals','Desert Springs Scorpions','Pecan Valley Bobcats','Harbor Ridge Vikings','Canyon Creek Thunder','Baywood Gators','Pioneer Valley Hornets','Willow Brook Warriors','Pine Ridge Tigers','East Mesa Mustangs','Granite Hills Hawks','River Oaks Lions','Crossroads Knights','Bluewater Dolphins','Redwood Cougars','Timberline Wolves','Lakecrest Eagles'];
+  const names=[...NAMES,...extra];
+  const result=names.map((name,i)=>{let scheme=pick(SCHEMES),classif=i%6+1,prestige=R(25,81);return {id:i,name,classif,prestige,coaching:cl(prestige+R(-16,18),20,92),facilities:cl(prestige+R(-18,20),18,92),scheme:scheme[0],runRate:scheme[1],star:R(20,85),defense:pick(['4-3','3-4','4-2-5','3-3-5','4-4']),coach:pick(['Coach Mason','Coach Brooks','Coach Williams','Coach Rivera','Coach Thompson']),expectations:R(35,85)}});
+  const prepNames=['National Summit Prep','Atlantic Football Academy','Blue Ridge Preparatory','Frontier Elite Academy'];
+  prepNames.forEach((name,i)=>{let scheme=SCHEMES[(i+2)%SCHEMES.length];result.push({id:result.length,name,classif:6,prep:true,prestige:85+i*3,coaching:88+i*2,facilities:89+i*2,scheme:scheme[0],runRate:scheme[1],star:88+i*2,defense:'4-2-5',coach:['Coach Jefferson','Coach Coleman','Coach Ramirez','Coach Taylor'][i],expectations:90+i*2});});
+  return result;
+}
 
 function rating(a,p){let keys=GROUPS[p].flatMap(g=>g[2]);return Math.round(keys.reduce((v,k)=>v+(a[k]||35),0)/keys.length)}
 

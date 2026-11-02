@@ -1,4 +1,4 @@
-/* Gridiron Life v0.5 Part 8.5.1 — nested section tabs, no game-state changes. */
+/* Gridiron Life v0.5 Part 8.6 — nested section tabs, no game-state changes. */
 (function(){
 let chosen=0,previousTab=null,previousStage=null;
 const baseRender=render;

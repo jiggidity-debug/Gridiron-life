@@ -15,18 +15,23 @@ function profileState(){
 }
 function profileGames(){return (game.games||[]).filter(g=>g&&g.stats&&g.year>=1);}
 function profileStats(games){
-  const sums={games:games.length,starts:0,varsityStarts:0,passAtt:0,passComp:0,passYards:0,passTD:0,interceptions:0,carries:0,rushYards:0,rushTD:0,receptions:0,recYards:0,recTD:0,wins:0,losses:0,playoffGames:0};
+  const sums={games:games.length,starts:0,varsityStarts:0,passAtt:0,passComp:0,passYards:0,passTD:0,interceptions:0,carries:0,rushYards:0,rushTD:0,receptions:0,recYards:0,recTD:0,wins:0,losses:0,playoffGames:0,tackles:0,tfl:0,sacks:0,passDef:0,defInt:0,defSnaps:0,offSnaps:0,blocks:0,pressures:0,fgAtt:0,fgMade:0,xpAtt:0,xpMade:0,punts:0,puntYards:0,longSnaps:0};
   for(const g of games){
     if(g.role==='Starter'){sums.starts++;if(g.level==='Varsity')sums.varsityStarts++;}
     if(g.win)sums.wins++;else sums.losses++;
     if(g.playoff)sums.playoffGames++;
-    for(const k of ['passAtt','passComp','passYards','passTD','interceptions','carries','rushYards','rushTD','receptions','recYards','recTD'])sums[k]+=Number(g.stats[k]||0);
+    for(const k of ['passAtt','passComp','passYards','passTD','interceptions','carries','rushYards','rushTD','receptions','recYards','recTD','tackles','tfl','sacks','passDef','defInt','defSnaps','offSnaps','blocks','pressures','fgAtt','fgMade','xpAtt','xpMade','punts','puntYards','longSnaps'])sums[k]+=Number(g.stats[k]||0);
   }
   return sums;
 }
 function profileStatLine(s,pos){
+  if(DEFENSIVE_POSITIONS.includes(pos))return s.tackles+' tackles · '+s.tfl+' TFL · '+s.sacks+' sacks · '+s.defInt+' INT';
+  if(LINEMEN.includes(pos))return s.offSnaps+' offensive snaps · '+s.blocks+' blocks · '+s.pressures+' pressures allowed';
+  if(pos==='K')return s.fgMade+'/'+s.fgAtt+' FG · '+s.xpMade+'/'+s.xpAtt+' PAT';
+  if(pos==='P')return s.punts+' punts · '+s.puntYards+' punting yards';
+  if(pos==='LS')return s.longSnaps+' long snaps';
   if(pos==='QB')return s.passComp+'/'+s.passAtt+' passing · '+s.passYards+' yards · '+s.passTD+' TD · '+s.interceptions+' INT';
-  if(pos==='RB')return s.carries+' carries · '+s.rushYards+' rushing yards · '+s.rushTD+' rush TD · '+s.receptions+' receptions';
+  if(['RB','FB'].includes(pos))return s.carries+' carries · '+s.rushYards+' rushing yards · '+s.rushTD+' rush TD · '+s.receptions+' receptions · '+s.recYards+' receiving yards · '+s.recTD+' receiving TD';
   return s.receptions+' receptions · '+s.recYards+' yards · '+s.recTD+' receiving TD · '+s.carries+' rushes';
 }
 function profileTraits(){
@@ -50,7 +55,10 @@ function profileBio(){
     const role=d.role==='Starter'?'is currently listed as a '+d.level+' starter':d.role==='Rotation'?'is currently in the '+d.level+' rotation':'is currently listed as a '+d.level+' '+d.role.toLowerCase();
     experience=' Across '+all.games+' recorded games, '+game.name+' has '+all.starts+' starts ('+all.varsityStarts+' varsity) and '+all.wins+' wins. The current depth chart '+role+'.';
     if(game.pos==='QB')experience+=' Career passing production is '+all.passComp+' completions on '+all.passAtt+' attempts for '+all.passYards+' yards, '+all.passTD+' touchdowns and '+all.interceptions+' interceptions.';
-    else if(game.pos==='RB')experience+=' Career rushing production is '+all.rushYards+' yards and '+all.rushTD+' touchdowns on '+all.carries+' carries.';
+    else if(['RB','FB'].includes(game.pos)){experience+=' The back has '+all.rushYards+' rushing yards on '+all.carries+' carries and '+all.receptions+' receptions for '+all.recYards+' yards.';if(all.recYards>all.rushYards*1.4&&all.receptions>=12)experience+=' Receiving production has become the defining feature of this backfield role.';}
+    else if(DEFENSIVE_POSITIONS.includes(game.pos))experience+=' Career defense: '+all.tackles+' tackles, '+all.tfl+' tackles for loss, '+all.sacks+' sacks, and '+all.defInt+' interceptions.';
+    else if(LINEMEN.includes(game.pos))experience+=' Career line work: '+all.offSnaps+' offensive snaps, '+all.blocks+' successful blocks, and '+all.pressures+' pressures allowed.';
+    else if(SPECIAL_POSITIONS.includes(game.pos))experience+=' Career special teams production: '+profileStatLine(all,game.pos)+'.';
     else experience+=' Career receiving production is '+all.receptions+' catches for '+all.recYards+' yards and '+all.recTD+' touchdowns.';
   }
   const honors=game.awards?.earned||[];
@@ -59,8 +67,9 @@ function profileBio(){
   const injuryCount=game.health?.injuryHistory?.length||0;
   const injuryLine=injuryCount?' The medical record lists '+injuryCount+' injuries during the tracked career.':'';
   const summer=game.summer||{},camps=summer.camps||[],titles=(summer.circuits||[]).filter(c=>c.title).length;
-  const offseason=(camps.length?' Offseason records include '+camps.length+' camp or combine evaluations.':'')+(titles?' The player has won '+titles+' regional seven-on-seven title'+(titles===1?'':'s')+'.':'')+(Number(summer.exposure)>0?' Recorded scouting exposure stands at '+Math.round(summer.exposure)+'/100.':'');
-  const context=' Academic standing is '+Number(game.gpa||0).toFixed(2)+' GPA; coach trust is '+Math.round(game.coachTrust||0)+'/100.'+offseason;
+  const offseason=(camps.length?' Offseason records include '+camps.length+' camp or combine evaluations.':'')+(titles?' The player has won '+titles+' regional seven-on-seven title'+(titles===1?'':'s')+'.':'')+(Number(summer.exposure)>=45?' His camp appearances and game film have begun attracting broader scouting attention.':Number(summer.exposure)>0?' His scouting visibility remains limited, though evaluators have begun gathering information.':'');
+  const trust=Number(game.coachTrust||0);const trustLine=trust>=80?' The coaching staff has strong confidence in his preparation and reliability.':trust>=60?' The coaching staff has growing confidence in his development.':trust>=40?' He continues to compete for the coaching staff’s confidence.':' His role remains unsettled as he works to earn the coaching staff’s confidence.';
+  const context=' He maintains a '+Number(game.gpa||0).toFixed(2)+' GPA.'+trustLine+offseason;
   const scout=all.games<3?'Scouts have limited game film. Current evaluations should be considered preliminary.':
     (thisYear.games?game.name+' has appeared in '+thisYear.games+' games this season. ':'')+
     'Top measured traits: '+traits.best.map(x=>x.label+' '+x.value).join(', ')+'. Areas for development: '+traits.develop.map(x=>x.label+' '+x.value).join(', ')+'.';
@@ -107,7 +116,7 @@ function profileScreen(){
   const traitsHtml='<div class="grid">'+traits.best.map(x=>'<div class="tile"><small>'+e(x.label)+'</small><div class="num">'+x.value+'</div></div>').join('')+'</div>';
   return playerCard+panel('Living player biography','<p>'+e(b.lead)+'</p><p>'+e(b.body)+'</p>')+
     panel('Current scouting report','<p>'+e(b.scout)+'</p>'+traitsHtml+'<p class="muted">OVR and attribute evaluations are current; performance totals below come from recorded games.</p>')+
-    panel('Career football statistics','<div class="grid">'+[['Recorded games',s.games],['Starts',s.starts],['Varsity starts',s.varsityStarts],['Wins',s.wins],['Playoff games',s.playoffGames],['Awards',game.awards?.earned?.length||0]].map(([a,v])=>'<div class="tile"><small>'+a+'</small><div class="num">'+v+'</div></div>').join('')+'</div><p><strong>'+e(game.pos)+' career:</strong> '+e(profileStatLine(s,game.pos))+'</p><p><strong>Current school year:</strong> '+e(profileStatLine(b.season,game.pos))+'</p>')+
+    panel('Career football statistics','<div class="grid">'+[['Recorded games',s.games],['Starts',s.starts],['Varsity starts',s.varsityStarts],['Wins',s.wins],['Playoff games',s.playoffGames],['Awards',game.awards?.earned?.length||0]].map(([a,v])=>'<div class="tile"><small>'+a+'</small><div class="num">'+v+'</div></div>').join('')+'</div><p><strong>'+e(game.pos)+' career:</strong> '+e(profileStatLine(s,game.pos))+'</p><p><strong>Current school year:</strong> '+e(profileStatLine(b.season,game.pos))+'</p>'+statGrid(game.games||[],true))+
     panel('Career milestones',milestoneRows||'<p>Milestones will appear as your career develops.</p>')+
     panel('Biography archive','<p class="muted">Snapshots preserve the biography as it appeared at registration and major career checkpoints. Existing saves cannot recover events that were never recorded.</p>'+(snapshotRows||'<p>The next major career event will create your first snapshot.</p>'))+
     panel('Background & school record','<p><strong>Upbringing:</strong> '+e(BG.find(x=>x[0]===game.bg)?.[1]||'Not listed')+'</p><p><strong>Program history:</strong> '+p.schoolHistory.map(x=>e(x.name)+' (Year '+x.year+')').join(' → ')+'</p>'+(injuries.length?'<p><strong>Recorded injuries:</strong> '+injuries.map(x=>e(x.name)+' · Year '+x.year).join(' · ')+'</p>':''));
