@@ -30,3 +30,10 @@ All previous automated tests plus a new high-school transfer test passed under N
 - Position-change request available in Team; no automatic starting job.
 - Scholarship offers limited to a small subset of eligible programs, and recruiting news now distinguishes monitoring from formal offers.
 - RB/FB receiving yardage and touchdown totals shown in profile; biography describes receiving-back usage, coach confidence, and scouting exposure naturally.
+
+
+## Part 8.8
+- 1A/2A ironman and evaluated upper-classification two-way defensive assignments in Team.
+- QB designed runs and scrambles in the high-school game simulation.
+- Rushing/defensive stat lines and game-workload changes reflect participation.
+- College match engine remains a separate simulation; no college two-way claim.

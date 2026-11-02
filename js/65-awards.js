@@ -15,9 +15,9 @@ function gameStatsDescription(g,pos){
   if(pos==='LS')return `${s.longSnaps||0} long snaps.`;
   if(isQB){
     const att=s.passAtt||0,comp=s.passComp||0,yds=s.passYards||0;
-    return `${comp}/${att} passing, ${yds} pass yards, ${s.passTD||0} pass TD, ${s.interceptions||0} INT; ${s.carries||0} rushes, ${s.rushYards||0} rush yards.`;
+    return `${comp}/${att} passing, ${yds} pass yards, ${s.passTD||0} pass TD, ${s.interceptions||0} INT; ${s.carries||0} rushes, ${s.rushYards||0} rush yards, ${s.rushTD||0} rush TD.`+(g.secondaryPosition?` Two-way ${g.secondaryPosition}: ${s.tackles||0} tackles, ${s.sacks||0} sacks.`:'');
   }
-  return `${s.carries||0} carries, ${s.rushYards||0} rush yards, ${s.rushTD||0} rush TD; ${s.receptions||0} catches, ${s.recYards||0} rec yards, ${s.recTD||0} rec TD.`;
+  return `${s.carries||0} carries, ${s.rushYards||0} rush yards, ${s.rushTD||0} rush TD; ${s.receptions||0} catches, ${s.recYards||0} rec yards, ${s.recTD||0} rec TD.`+(g.secondaryPosition?` Two-way ${g.secondaryPosition}: ${s.tackles||0} tackles, ${s.sacks||0} sacks, ${s.defInt||0} INT.`:'');
 }
 function gameImpact(g){
   const s=g.stats||{};

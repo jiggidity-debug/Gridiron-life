@@ -16,6 +16,41 @@ function otherSquadGames(playerLevel,match){
   }
   return varsityOutcome;
 }
+// Secondary defensive assignment. Small-school duty can be requested by any
+// healthy athlete; larger schools evaluate exceptional two-way candidates.
+function twoWayDecision(){
+  const pos=game.secondaryPosition;
+  if(!pos||!DEFENSIVE_POSITIONS.includes(pos)||pos===game.pos||DEFENSIVE_POSITIONS.includes(game.pos))return {active:false,reason:'No secondary defensive position selected'};
+  const level=game.school.classif,skill=rating(game.attrs,pos),primary=rating(game.attrs,game.pos);
+  const allowed=level<=2||skill>= (level<=4?57:68)&&primary>= (level<=4?55:68);
+  return {active:allowed&&Boolean(game.twoWayRequested),skill,level,reason:!game.twoWayRequested?'Two-way duty not requested':allowed?'Approved for two-way snaps':`Coach requires stronger secondary-position evaluation at ${level}A`};
+}
+function requestTwoWay(pos,enabled){
+  if(game.gamePending){feedback='Finish the pending game first.';render();return}
+  if(pos&&!DEFENSIVE_POSITIONS.includes(pos)){feedback='Select a defensive secondary position.';render();return}
+  game.secondaryPosition=pos||null;game.twoWayRequested=Boolean(enabled);
+  const d=twoWayDecision();feedback=d.reason;
+  note('Two-way request: '+(pos||'None')+'. '+d.reason+'.');persist();render();
+}
+function simulateSecondaryDefense(stats,log,snapShare){
+  const skill=rating(game.attrs,game.secondaryPosition);
+  const classBonus=game.school.classif<=2?1:.6;
+  const snaps=Math.round(R(39,64)*snapShare*classBonus);
+  stats.defSnaps+=snaps;
+  for(let i=0;i<snaps;i++){
+    const q=Math.min(4,1+Math.floor(i/Math.max(1,snaps/4)));
+    if(Math.random()<cl(.065+(skill-43)/750,.025,.16)){
+      stats.tackles++;if(Math.random()<.15){stats.tfl++;log.push('Q'+q+' · Two-way '+game.secondaryPosition+' tackle for loss.');}
+    }
+    if(['DE','DT','NT','OLB','ILB','MLB'].includes(game.secondaryPosition)&&Math.random()<cl(.013+(skill-45)/2000,.003,.038)){
+      stats.pressures++;if(Math.random()<.25){stats.sacks++;log.push('Q'+q+' · Two-way quarterback sack.');}
+    }
+    if(['CB','FS','SS','OLB','ILB','MLB'].includes(game.secondaryPosition)&&Math.random()<.013){
+      stats.passDef++;if(Math.random()<.14){stats.defInt++;log.push('Q'+q+' · Two-way interception.');}
+    }
+  }
+  log.push('Two-way defense · '+snaps+' snaps, '+stats.tackles+' tackles, '+stats.sacks+' sacks.');
+}
 function simulateGame(){
   if(!game.gamePending)return;
   let d=depth(),rank=d.rank,role=game.injury?'Out (Injury)':d.role,sch=game.school,match=currentMatchup()||{opponentName:'Unknown opponent',opponentStrength:50};
@@ -37,7 +72,20 @@ function simulateGame(){
     if(run){
       let yards=cl(R(-3,9)+Math.round((game.attrs.vision-45)/12)+Math.round((sch.prestige-(match.opponentRunDefense??match.opponentStrength))/16)-Math.floor(game.fatigue/34)-Math.floor(healthState().wear/35),-5,23);
       teamRush+=yards;
-      if(you&&['RB','FB'].includes(game.pos)){
+      if(you&&game.pos==='QB'){
+        stats.offSnaps++;
+        // Designed QB runs scale with scheme and mobility; slow QBs still
+        // occasionally run sneaks and broken plays, but rarely break away.
+        const mobility=(game.attrs.speed+game.attrs.agility+game.attrs.accel)/3;
+        const attemptOdds=cl(.035+(mobility-48)/270+(sch.runRate-.45)*.14,.012,.32);
+        if(Math.random()<attemptOdds){
+          const runYards=cl(Math.round(R(-4,8)+(mobility-48)/10-game.fatigue/40),-6,26);
+          stats.carries++;stats.rushYards+=runYards;
+          const td=runYards>0&&Math.random()<.032;
+          if(td){stats.rushTD++;gameScore+=7;}
+          log.push('Q'+(Math.floor(i/offensePlays*4)+1)+' · Designed QB run '+runYards+' yd'+(td?' · TOUCHDOWN':'')+'.');
+        }
+      }else if(you&&['RB','FB'].includes(game.pos)){
         stats.offSnaps++;
         stats.carries++;stats.rushYards+=yards;
         let td=Math.random()<.038&&yards>0;
@@ -60,6 +108,17 @@ function simulateGame(){
         }else log.push('Q'+(Math.floor(i/offensePlays*4)+1)+' · Target, incomplete.');
       }else if(you&&game.pos==='QB'){
         stats.offSnaps++;
+        // Pressure can force an improvised scramble instead of a pass.
+        const mobility=(game.attrs.speed+game.attrs.accel+game.attrs.agility)/3;
+        const scramble=Math.random()<cl(.025+(mobility-48)/300,.008,.21);
+        if(scramble){
+          const scrambleYards=cl(Math.round(R(-4,9)+(mobility-48)/9-game.fatigue/45),-7,28);
+          stats.carries++;stats.rushYards+=scrambleYards;
+          const td=scrambleYards>0&&Math.random()<.028;
+          if(td){stats.rushTD++;gameScore+=7;}
+          log.push('Q'+(Math.floor(i/offensePlays*4)+1)+' · QB scramble '+scrambleYards+' yd'+(td?' · TOUCHDOWN':'')+'.');
+          continue;
+        }
         stats.passAtt++;
         if(success){
           stats.passComp++;stats.passYards+=yards;
@@ -105,6 +164,12 @@ function simulateGame(){
       log.push('Punting · '+stats.punts+' punts for '+stats.puntYards+' yards.');
     }else{stats.longSnaps=stats.stSnaps;log.push('Long snapping · '+stats.longSnaps+' snaps.');}
   }
+  // Separate defensive workload and statistics for approved two-way players.
+  const tw=twoWayDecision();
+  if(active&&tw.active){
+    const defenseShare=(role==='Starter'?.75:role==='Rotation'?.46:role==='Backup'?.22:.10);
+    simulateSecondaryDefense(stats,log,defenseShare);
+  }
   gameScore+=R(0,3)*3;
   let overtime=false;if(gameScore===opponent){overtime=true;if(Math.random()<.5)gameScore+=3;else opponent+=3}
   const win=gameScore>opponent;
@@ -114,7 +179,7 @@ function simulateGame(){
   }else{game.postseasonRecord=game.postseasonRecord||[0,0];game.postseasonRecord[win?0:1]++}
   const varsityOutcome=otherSquadGames(gameLevel,match)||{score:gameScore,opp:opponent};
   if(!match.playoff)game.programRecord[varsityOutcome.score>varsityOutcome.opp?0:1]++;
-  const result={week:game.week,playoff:!!match.playoff,round:match.round||null,overtime,phase:game.phase,year:game.year,score:gameScore,opp:opponent,opponentName:match.opponentName,opponentStrength:match.opponentStrength,opponentDefense:match.opponentDefense,opponentRunDefense:match.opponentRunDefense,opponentPassDefense:match.opponentPassDefense,win,role,level:gameLevel,upperDress,stats,teamRush,teamPass,runPlays,passPlays,plays:log};
+  const result={week:game.week,playoff:!!match.playoff,round:match.round||null,overtime,phase:game.phase,year:game.year,score:gameScore,opp:opponent,opponentName:match.opponentName,opponentStrength:match.opponentStrength,opponentDefense:match.opponentDefense,opponentRunDefense:match.opponentRunDefense,opponentPassDefense:match.opponentPassDefense,win,role,level:gameLevel,upperDress,secondaryPosition:tw.active?game.secondaryPosition:null,stats,teamRush,teamPass,runPlays,passPlays,plays:log};
   game.games.unshift(result);
   recordPositionStarts(gameLevel,match);
   if(game.injury)note('Medical restriction: you missed this game while recovering from '+game.injury.name+'.');

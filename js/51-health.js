@@ -20,8 +20,9 @@ function registerGameWorkload(stats,role){
   const touches=(stats.carries||0)+(stats.receptions||0);
   let contacts=(stats.carries||0)*1.05+(stats.receptions||0)*.72;
   if(pos==='QB')contacts=(stats.passAtt||0)*.19+(stats.carries||0)*.9;
+  contacts+=(stats.defSnaps||0)*.16+(stats.tackles||0)*.55+(stats.sacks||0)*.7;
   if(pos==='WR'||pos==='TE')contacts+=(stats.targets||0)*.13;
-  let raw=2+contacts*.36;
+  let raw=(stats.offSnaps||0)*.022+(stats.defSnaps||0)*.034+(stats.stSnaps||0)*.015+contacts*.36;
   h.pendingGameLoad={contacts:Math.round(contacts*10)/10,touches,load:raw,year:game.year,week:game.week};
   h.lastGame={year:game.year,week:game.week,touches,contacts:Math.round(contacts*10)/10};
   return h.pendingGameLoad;

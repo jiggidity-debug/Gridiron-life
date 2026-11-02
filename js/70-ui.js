@@ -141,7 +141,7 @@ function setupScreen(){
     return '<label class="line"><span>'+e(k==='iq'?'Academic intelligence':k==='behavior'?'Behavior / Coachability':k.replace(/\b\w/g,c=>c.toUpperCase()))+'</span><strong id="v_'+k+'">'+value+'</strong></label>'+
       '<input aria-label="'+e(k)+' creation attribute" type="range" id="a_'+k+'" min="'+(baseline===50?35:28)+'" max="'+(baseline===50?85:70)+'" value="'+value+'" oninput="showBudget(this)">';
   }).join('');
-  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.7 · Registration</span></div>'+
+  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.8 · Registration</span></div>'+
     '<div class="signup-masthead"><div class="signup-overline">INTERSCHOLASTIC ATHLETICS · INTAKE DOCUMENT</div><h1>Create your freshman</h1><p>High School Football Registration</p><div class="signup-stamp">FORM GL–09 · NEW STUDENT · ACADEMIC YEAR 1</div></div>'+
     '<section class="panel signup-sheet">'+identity+'</section>'+
     panel('03 · School profile & program evaluation','<p class="muted">Review the program you are registering for. School choice affects football opportunities and resources.</p><div id="school-profile">'+selectedSchoolStats()+'</div>')+
@@ -153,7 +153,7 @@ function setupScreen(){
     '<button id="start-career" onclick="start()">Submit Registration & Begin Career</button></section>';
 }
 
-function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.5 Part 8.7 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
+function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.5 Part 8.8 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
 
 function healthPanel(compact=false){
   const h=healthState(),last=h.weekReports[0];
@@ -244,7 +244,7 @@ function teamScreen(){
     +panel('Squad records · Year '+game.year,'<p class="muted">Records reset each fall season and are preserved in History. Squads compete separately.</p><div class="grid">'+rows+'</div>')
 
     +competitionPanels()
-    +positionRoomPanel()+positionChangeScreen()
+    +positionRoomPanel()+positionChangeScreen()+twoWayPanel()
     +panel('Position depth charts','<p class="muted">Primary placement aims to give younger backups meaningful lower-team opportunities. Upper-squad dressed reserves remain on their primary team. Seniors play varsity only; available levels depend on school classification. *Starts are recorded from Part 7 onward; previous seasons cannot be reconstructed. This roster covers your position group, not full 22-player lineups.</p>'+charts)
     +squadChoicesPanel()
     +panel('Program alumni','<strong>'+game.alumni.length+' graduated players</strong><p class="muted">Graduates are removed from active rosters and kept in school history.</p>'+(game.alumni.length?game.alumni.slice(-12).reverse().map(x=>'<div class="log">'+e(x.name)+' · '+e(x.pos)+' · '+x.ovr+' OVR · Finished Year '+x.graduatedAfterYear+'</div>').join(''):'No graduating class yet.'))+schoolTransferScreen();
@@ -312,22 +312,35 @@ function historyScreen(){
   return panel('Player biography archive','<p>Registration, milestones, and career snapshots are available in the Player Profile tab.</p><button class="alt" onclick="tab=&#39;profile&#39;;render()">View player profile and archive</button>')+awardsHistoryPanel()+summerHistoryPanel()+positionRoomHistory()+panel('Season records',seasons||'<p>Your completed school years will appear here.</p>')
     +seasonStatsScreen()+panel('Play-by-play details',games)
     +panel('Career journal',game.history.map(x=>'<div class="log"><strong>'+e(x.title)+'</strong><br>'+e(x.text)+'</div>').join(''))
-    +panel('Save and backup','<p>Autosave for v0.5 Part 8.7 uses a separate browser save slot from v0.4. Your original v0.4 save stays untouched for rollback. Export regularly before updating GitHub Pages.</p><div class="buttons"><button onclick="exportSave()">Export Save JSON</button><label style="max-width:240px">Import saved JSON<input type="file" accept="application/json" onchange="importSave(this)"></label><button class="alt" onclick="resetV5()">New Career</button></div>');
+    +panel('Save and backup','<p>Autosave for v0.5 Part 8.8 uses a separate browser save slot from v0.4. Your original v0.4 save stays untouched for rollback. Export regularly before updating GitHub Pages.</p><div class="buttons"><button onclick="exportSave()">Export Save JSON</button><label style="max-width:240px">Import saved JSON<input type="file" accept="application/json" onchange="importSave(this)"></label><button class="alt" onclick="resetV5()">New Career</button></div>');
 }
 
 function recruitmentHomeScreen(){return panel('College signing', '<p>High school is complete. Review offers and choose your next school.</p><button onclick="tab=\'recruiting\';render()">Review college offers</button>')+panel('Your career', '<button class="alt" onclick="tab=\'profile\';render()">Player profile</button>');}
 function collegeHomeScreen(){const c=collegeState();return panel('College dashboard','<div class="grid">'+stat('College year',c.year)+stat('Position',game.pos)+stat('OVR',rating(game.attrs,game.pos))+stat('Fatigue',Math.round(game.fatigue)+'%')+'</div>')+panel('Your program','<button onclick="tab=\'college\';render()">Open college football</button>')+panel('Career','<button class="alt" onclick="tab=\'profile\';render()">Player profile</button>');}
 function render(){
  let el=document.getElementById('app');if(!game){el.innerHTML=setupScreen();showBudget();return}
- const footer='<footer>Gridiron Life v0.5 Part 8.7 · Offline, fictional football universe · Saved locally · College simulation and eligibility are simplified.</footer>';
+ const footer='<footer>Gridiron Life v0.5 Part 8.8 · Offline, fictional football universe · Saved locally · College simulation and eligibility are simplified.</footer>';
  if(game.stage==='recruiting'){
    const nav='<div class="tabs"><button class="'+(tab==='home'?'active':'alt')+'" onclick="tab=\'home\';render()">Home</button><button class="'+(tab==='recruiting'?'active':'alt')+'" onclick="tab=\'recruiting\';render()">Recruiting & Signing</button><button class="alt" onclick="tab=\'profile\';render()">High School Profile</button><button class="alt" onclick="tab=\'history\';render()">History & Save</button></div>';
-   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.7 · Graduate</span></div><h1>'+e(game.name)+' · College recruitment</h1>'+nav+(tab==='home'?recruitmentHomeScreen():tab==='profile'?profileScreen():tab==='history'?historyScreen():recruitingScreen())+footer;return;
+   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.8 · Graduate</span></div><h1>'+e(game.name)+' · College recruitment</h1>'+nav+(tab==='home'?recruitmentHomeScreen():tab==='profile'?profileScreen():tab==='history'?historyScreen():recruitingScreen())+footer;return;
  }
  if(game.stage==='college'||game.stage==='collegeComplete'){
    const c=collegeState();const nav='<div class="tabs"><button class="'+(tab==='home'?'active':'alt')+'" onclick="tab=\'home\';render()">Home</button><button class="'+(tab==='college'?'active':'alt')+'" onclick="tab=\'college\';render()">College Football</button><button class="alt" onclick="tab=\'profile\';render()">Player Profile</button><button class="alt" onclick="tab=\'history\';render()">History / Save</button></div>';
-   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.7 · College Year '+c.year+'</span></div><h1>'+e(game.name)+' · '+e(game.pos)+'</h1>'+nav+(feedback?'<p class="notice">'+e(feedback)+'</p>':'')+(tab==='home'?collegeHomeScreen():tab==='history'?historyScreen():tab==='profile'?collegeProfilePanel()+profileScreen():collegeScreen())+footer;return;
+   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.8 · College Year '+c.year+'</span></div><h1>'+e(game.name)+' · '+e(game.pos)+'</h1>'+nav+(feedback?'<p class="notice">'+e(feedback)+'</p>':'')+(tab==='home'?collegeHomeScreen():tab==='history'?historyScreen():tab==='profile'?collegeProfilePanel()+profileScreen():collegeScreen())+footer;return;
  }
  let content={home:homeScreen,career:careerScreen,profile:profileScreen,team:teamScreen,develop:developScreen,life:lifeScreen,summer:summerScreen,recruiting:recruitingScreen,history:historyScreen};
  el.innerHTML=commonHeader()+content[tab]()+footer;
+}
+
+function twoWayPanel(){
+  const d=twoWayDecision(),pos=game.secondaryPosition||'';
+  return panel('Two-way / Ironman football',
+    '<div class="line"><span>Primary position</span><strong>'+e(game.pos)+'</strong></div>'+
+    '<div class="line"><span>Secondary assignment</span><strong>'+e(pos||'None')+'</strong></div>'+
+    '<div class="line"><span>Coach evaluation</span><strong>'+e(d.reason)+'</strong></div>'+
+    '<label>Defensive position <select id="secondaryPos"><option value="">None</option>'+
+    DEFENSIVE_POSITIONS.map(p=>'<option value="'+p+'" '+(p===pos?'selected':'')+'>'+p+'</option>').join('')+'</select></label>'+
+    '<button onclick="requestTwoWay(document.getElementById(\'secondaryPos\').value,true)">Request two-way duty</button> '+
+    '<button class="alt" onclick="requestTwoWay(null,false)">Offense only</button>'+
+    '<details><summary>?</summary><p>1A and 2A schools allow more ironman assignments. At larger schools coaches require stronger primary and secondary evaluations. Playing both ways adds defensive snaps, game statistics and physical workload without doubling training gains.</p></details>');
 }
