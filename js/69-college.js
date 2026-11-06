@@ -52,12 +52,17 @@ function recruitingState(){
  if(!game)return null;
  if(!game.recruiting){game.recruiting={board:[],createdYear:0,stars:0,rank:null,offers:[],scouting:0};}
  const r=game.recruiting;
- if(!Array.isArray(r.board)||r.board.length!==1600 || !r.boardVersion || r.boardVersion<2){
-  // A large national pool exists, but only 250 athletes receive published ranks.
-  // Top 250: 2 generational prospects at 77; 248 prospects between 58 and 76.
-  // Other 1,350 prospects are unranked, with ratings no higher than 57.
-  r.board=Array.from({length:1600},(_,i)=>({id:i+1,name:pick(FN)+' '+pick(LN),pos:pick(['QB','RB','WR','TE']),state:pick(['Texas','Florida','Ohio','Georgia','California','Louisiana']),score:i<2?77:i<250?58+Math.floor(Math.pow(Math.random(),.8)*19):28+Math.floor(Math.random()*30)}));
-  r.boardVersion=2;
+ if(!Array.isArray(r.board)||r.board.length!==1600 || !r.boardVersion || r.boardVersion<3){
+  // Distinct named prospects and the full 22-position football spectrum.
+  // Stable IDs for save/load; regenerate legacy boards that were QB/RB/WR/TE only.
+  const first=['Marcus','Devon','Andre','Jaylen','Evan','Malik','Cameron','Noah','Tyler','Elijah','Devin','Darius','Isaiah','Miles','Micah','Jalen','Ethan','Bryce','Colton','Aaron','Joshua','Dante','Kendrick','Terrence','Jamal','Jeremiah','Tristan','Jordan','Caleb','Xavier','Trey','Christian','Amari','Zion','Nathan','Aiden','Julian','Anthony','Eric','Dominic'];
+  const last=['Davis','Walker','Jones','Harris','Thomas','Carter','Brooks','Young','Reed','Turner','Jackson','Williams','Morris','Mitchell','Parker','Howard','Collins','Bennett','Green','Phillips','Campbell','Edwards','Foster','Simmons','Griffin','Hayes','Perry','Peterson','Russell','Henderson','Coleman','Cooper','Price','Bailey','Ward','Morgan','Barnes','Powell','Watson','Jenkins'];
+  const positions=Object.keys(POSITION_FAMILIES),states=['Texas','Florida','Ohio','Georgia','California','Louisiana','Alabama','Mississippi','Pennsylvania','Virginia','Michigan','Arizona','North Carolina','Tennessee'];
+  // Shuffle the complete combination table once: 40 x 40 = 1,600 unique names.
+  const names=[];for(const fn of first)for(const ln of last)names.push(fn+' '+ln);
+  for(let i=names.length-1;i>0;i--){const j=R(0,i);[names[i],names[j]]=[names[j],names[i]];}
+  r.board=Array.from({length:1600},(_,i)=>({id:i+1,name:names[i],pos:positions[(i*7+Math.floor(i/positions.length))%positions.length],state:states[i%states.length],score:i<2?77:i<250?58+Math.floor(Math.pow((249-i)/249,.75)*19):28+Math.min(29,Math.floor(Math.pow((1600-i)/1350,.78)*30))}));
+  r.boardVersion=3;
  }
 
  const recent=(game.games||[]).filter(x=>x.level==='Varsity');
@@ -187,41 +192,70 @@ function collegeMatch(){const c=collegeState();if(!c)return null;
  if(c.phase==='postseason')return c.playoff?.nextMatch||c.bowl||null;
  return null;
 }
-function collegeGenerateStats(role,opp,forceOut=false){
- const c=collegeState(),stats={carries:0,rushYards:0,rushTD:0,receptions:0,recYards:0,recTD:0,passAtt:0,passComp:0,passYards:0,passTD:0,interceptions:0},plays=[];
- const active=!forceOut&&!game.injury;
- const share=!active?0:role==='Starter'?0.86:role==='Rotation'?.34:.09;
- const offense=cl(Math.round(59+(c.program.prestige-opp.prestige)/5),40,82);
- const attempts=game.pos==='QB'?Math.round(offense*.55*share):['RB','FB'].includes(game.pos)?Math.round(offense*(SCHEMES.find(x=>x[0]===c.program.scheme)?.[1]??.50)*.57*share):Math.round(offense*(1-(SCHEMES.find(x=>x[0]===c.program.scheme)?.[1]??.50))*.32*share);
+// Shared possession model for college football. Produces the final score AND
+// player box-score entries together, so production cannot detach from scoring.
+function collegePossessionGame(role,opp,forceOut=false){
+ const c=collegeState(),stats={carries:0,rushYards:0,rushTD:0,receptions:0,recYards:0,recTD:0,passAtt:0,passComp:0,passYards:0,passTD:0,interceptions:0,defSnaps:0,tackles:0,tfl:0,sacks:0,passDef:0,defInt:0,offSnaps:0,blocks:0,pressures:0,fgAtt:0,fgMade:0,xpAtt:0,xpMade:0,punts:0,puntYards:0,longSnaps:0},plays=[];
+ const active=!forceOut&&!game.injury,share=!active?0:role==='Starter'?.92:role==='Rotation'?.33:.08;
+ const runRate=SCHEMES.find(x=>x[0]===c.program.scheme)?.[1]??.50;
+ const strength=c.program.prestige,against=opp.prestige;
+ const passRate=cl(.52+(strength-against)/230,.27,.76);
+ const matchPass=cl(.48+((game.attrs.accuracy||38)*.65+(game.attrs.awareness||38)*.35-50)/320+(strength-against)/390-game.fatigue/1100,.29,.83);
+ const competition=cl((rating(game.attrs,game.pos)-against)/270,-.14,.14);
+ const simulate=(ours)=>{
+   let points=0;
+   const teamPower=ours?strength:against,defPower=ours?against:strength;
+   const quality=cl(.51+(teamPower-defPower)/250,.30,.72);
+   const n=R(9,12);
+   for(let drive=0;drive<n;drive++){
+     let ball=R(18,35);
+     for(let down=0;down<Math.max(4,R(7,11));down++){
+       const pass=Math.random()>(ours?runRate:cl(runRate+(against-strength)/400,.25,.75));
+       const you=ours&&active&&Math.random()<share;
+       let gain=0,kind='run',used=false,scorer=false;
+       if(pass){
+         kind='pass';
+         if(you&&game.pos==='QB'){
+           used=true;stats.offSnaps++;stats.passAtt++;
+           const scramble=Math.random()<cl(.025+((game.attrs.speed||38)-48)/400,.008,.14);
+           if(scramble){stats.passAtt--;kind='run';gain=R(-4,12);stats.carries++;stats.rushYards+=gain;}
+           else if(Math.random()<matchPass){gain=R(2,27);stats.passComp++;stats.passYards+=gain;scorer=true;}
+           else if(Math.random()<cl(.068-(game.attrs.awareness-50)/1100,.015,.09)){stats.interceptions++;plays.push('Q'+Math.min(4,Math.floor(drive/3)+1)+' · Interception; possession ends.');break;}
+         }else if(you&&['WR','TE','RB','FB'].includes(game.pos)){
+           used=true;stats.offSnaps++;if(Math.random()<cl(.54+competition,.30,.82)){gain=R(2,26);stats.receptions++;stats.recYards+=gain;scorer=true;}
+         }else gain=Math.random()<quality?R(2,23):0;
+       }else{
+         if(you&&['RB','FB','QB'].includes(game.pos)){
+           if(game.pos==='QB'&&Math.random()>.13){gain=Math.random()<quality?R(0,11):R(-3,1);}
+           else{used=true;stats.offSnaps++;gain=R(-3,12)+Math.round(competition*10);stats.carries++;stats.rushYards+=gain;scorer=true;}
+         }else gain=Math.random()<quality?R(2,12):R(-4,2);
+       }
+       const newBall=ball+gain;
+       const touchdown=newBall>=100;
+       if(touchdown){points+=7;if(used&&scorer){if(kind==='pass'&&game.pos==='QB')stats.passTD++;else if(kind==='run')stats.rushTD++;else if(kind==='pass')stats.recTD++;}}
+       if(used)plays.push('Q'+Math.min(4,Math.floor(drive/3)+1)+' · '+(kind==='pass'?(game.pos==='QB'?(gain>0?'Completed pass':'Incomplete pass'):'Target'):'Run')+' '+gain+' yd'+(touchdown?' · TOUCHDOWN':'')+'.');
+       ball=newBall;
+       if(touchdown)break;
+       if(down===3&&ball<Math.max(30,down*10+40)&&Math.random()<.62)break;
+       if(down>=7){if(ball>=64&&Math.random()<.73)points+=3;break;}
+     }
+   }
+   return points;
+ };
+ const ourScore=simulate(true),theirScore=simulate(false);
  if(active&&DEFENSIVE_POSITIONS.includes(game.pos)){
-   const snaps=Math.round(offense*share),tackles=Math.round(snaps*cl(.07+(game.attrs.vision-45)/650,.03,.16));
-   Object.assign(stats,{defSnaps:snaps,tackles,tfl:Math.round(tackles*.17),sacks:['DE','DT','NT','OLB'].includes(game.pos)?Math.round(snaps*.027):0,passDef:['CB','FS','SS'].includes(game.pos)?Math.round(snaps*.035):0,defInt:0});
-   plays.push('Defense: '+tackles+' tackles over '+snaps+' snaps.');return {stats,plays};
+   stats.defSnaps=Math.round(R(43,68)*share);
+   stats.tackles=Math.round(stats.defSnaps*cl(.075+((game.attrs.vision||38)-45)/720,.035,.17));
+   stats.tfl=Math.round(stats.tackles*.17);
+   stats.sacks=['DE','DT','NT','OLB','ILB','MLB'].includes(game.pos)?Math.round(stats.defSnaps*.021):0;
+   stats.passDef=['CB','FS','SS','OLB'].includes(game.pos)?Math.round(stats.defSnaps*.035):0;
+   plays.push('Defense · '+stats.defSnaps+' snaps, '+stats.tackles+' tackles.');
  }
- if(active&&LINEMEN.includes(game.pos)){
-   const snaps=Math.round(offense*share);Object.assign(stats,{offSnaps:snaps,blocks:Math.round(snaps*.56),pressures:Math.round(snaps*.07)});
-   plays.push('Offensive line: '+snaps+' snaps.');return {stats,plays};
- }
- if(active&&SPECIAL_POSITIONS.includes(game.pos)){
-   if(game.pos==='K')Object.assign(stats,{fgAtt:2,fgMade:1,xpAtt:3,xpMade:3});
-   if(game.pos==='P')Object.assign(stats,{punts:4,puntYards:152});
-   if(game.pos==='LS')Object.assign(stats,{longSnaps:7});
-   plays.push('Special teams appearance.');return {stats,plays};
- }
- const competition=Math.max(-.18,Math.min(.18,(rating(game.attrs,game.pos)-opp.prestige)/180));
- for(let i=0;i<attempts;i++){
-  if(game.pos==='QB'){
-   stats.passAtt++;const chance=cl(.49+((game.attrs.accuracy||38)+(game.attrs.awareness||38)-100)/520+competition-game.fatigue/1200,.22,.83);
-   if(Math.random()<chance){let yards=R(3,26);stats.passComp++;stats.passYards+=yards;if(Math.random()<.067)stats.passTD++;plays.push('Completed pass for '+yards+' yd.');}
-   else if(Math.random()<.085){stats.interceptions++;plays.push('Interception.');}else plays.push('Incomplete pass.');
-  }else if(game.pos==='RB'){
-   let y=R(-3,11)+Math.round((game.attrs.vision-50)/17)+Math.round(competition*11);stats.carries++;stats.rushYards+=y;if(y>0&&Math.random()<.053)stats.rushTD++;plays.push('Carry '+(y>=0?'+':'')+y+' yd.');
-  }else{
-   if(Math.random()<cl(.56+competition,.22,.84)){let y=R(3,24);stats.receptions++;stats.recYards+=y;if(Math.random()<.07)stats.recTD++;plays.push('Reception for '+y+' yd.');}else plays.push('Target incomplete.');
-  }
- }
- return {stats,plays};
+ if(active&&LINEMEN.includes(game.pos)){stats.offSnaps=Math.round(R(48,73)*share);stats.blocks=Math.round(stats.offSnaps*.53);stats.pressures=Math.round(stats.offSnaps*.07)}
+ if(active&&SPECIAL_POSITIONS.includes(game.pos)){if(game.pos==='K'){stats.fgAtt=2;stats.fgMade=1;stats.xpAtt=4;stats.xpMade=4;}else if(game.pos==='P'){stats.punts=R(2,6);stats.puntYards=stats.punts*R(34,45);}else stats.longSnaps=7;}
+ return {stats,plays,score:ourScore,opp:theirScore,drives:true};
 }
+function collegeGenerateStats(role,opp,forceOut=false){return collegePossessionGame(role,opp,forceOut)}
 function collegeStandings(){const c=collegeState();return c?c.programs.filter(p=>p.tier===c.program.tier).sort((a,b)=>(b.record[0]-a.record[0])||((b.prestige)-a.prestige)):[]}
 function collegeSimGame(){
  let c=collegeState();if(!c||!['regular','postseason'].includes(c.phase))return;
@@ -229,10 +263,10 @@ function collegeSimGame(){
  const opponent=c.programs.find(p=>p.id===match.id)||{id:-1,name:match.name,prestige:75,conference:'Other'};
  const d=collegeDepth(),active=!c.redshirtChoice&&!game.injury;
  const role=active?d.role:'DNP ('+(c.redshirtChoice?'Redshirt':'Injury')+')';
- const strength=cl(c.program.prestige+(d.role==='Starter'?(rating(game.attrs,game.pos)-65)*.3:0)-game.fatigue*.035,20,100);
- let ourScore=cl(Math.round(R(6,41)+(strength-opponent.prestige)*.32),0,59),theirScore=cl(Math.round(R(6,41)+(opponent.prestige-strength)*.32),0,59);
+ const production=collegeGenerateStats(role,opponent,!active);
+ let ourScore=production.score,theirScore=production.opp;
  if(ourScore===theirScore){if(Math.random()<.5)ourScore+=3;else theirScore+=3;}
- const win=ourScore>theirScore,production=collegeGenerateStats(role,opponent,!active);
+ const win=ourScore>theirScore;
  const result={year:c.year,week:c.week,phase:c.phase,opponentName:opponent.name,level:'College',role,score:ourScore,opp:theirScore,win,stats:production.stats,plays:production.plays,conference:match.conference,playoff:c.phase==='postseason'&&c.playoff?.nextMatch===match};
  c.games.unshift(result);c.seasonGames.push(result);if(active)c.gamesPlayedThisYear++;
  if(c.phase==='regular'){
@@ -359,7 +393,7 @@ function collegeAdvancePlayerWeek(result,role){
  const logs=[];
  for(const group of GROUPS[game.pos]){
    const hrs=game.focus[group[0]]||0;
-   const inc=(base/GROUPS[game.pos].length+extra*hrs/Math.max(1,game.plan.training||7))*efficiency;
+   const inc=(base/GROUPS[game.pos].length+extra*hrs/Math.max(1,plan.training||7))*efficiency;
    for(let i=0;i<group[2].length;i++){
      const key=group[2][i];game.progress[key]=(game.progress[key]||0)+inc*(i===0?1:.6)*cl((105-game.attrs[key])/65,.35,1.35);
      let gained=0;while(game.progress[key]>=12&&game.attrs[key]<99){game.attrs[key]++;game.progress[key]-=12;gained++;}

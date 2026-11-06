@@ -1,39 +1,19 @@
-# Gridiron Life v0.5 — Part 8.6
+# Gridiron Life v0.5 — Part 8.9 (first playable build)
 
-This release builds on v0.5 Part 8.5.1.
+## What changed
+- **College HUD continuity:** college now offers Home, Team, Development, Life, Player Profile, College Football, and History/Save. College Development shows original player attributes, weekly commitments, skill focus and condition. College Life exposes academics, eligibility, money and NIL. College Profile presents current college identity and career stats instead of appending the obsolete high-school player profile.
+- **On-field scoring:** high-school offense now tracks field position, downs, and drives. Touchdowns are awarded on end-zone plays, and QB/RB/receiver TD statistics are credited from those plays rather than independent dice rolls. College produces game scoring and box-score contributions in the same possession simulation rather than rolling the final score before generating player statistics.
+- **Recruiting corrections:** new and migrated prospect boards generate 1,600 unique full names, represent all 22 playable positions, and preserve the intended Top 250 OVR bands; persisted board version increased to 3.
+- **College development:** training focus now scales against the actual college training allocation, rather than high-school allocation.
 
-## Changes
-
-- Football registration now selects **classification (1A–6A) first**, followed by a list of schools in that classification. The game now offers 36 fictional regular high schools, six per classification.
-- Added four **selective national prep schools** in the football world. They are not available to brand-new freshmen at registration. Apply via Team → High school transfers after developing a career: grade 10+, 62+ player OVR and 2.70+ GPA. This is a fictional simplified admission rule, not an exact real-world prep admission standard.
-- Added **Team → High school transfers** for offseason moves to other schools. Choose the target classification and school, or apply to a prep program when eligible. The fall-season transfer window is closed; eligibility restrictions are simplified and do not model UIL rules.
-- On transfer, the new school has a new position roster and placement evaluation. Player attributes, academic records, recorded games, and milestones remain attached to the player. Transfer history is saved.
-- No changes to training progression, recruiting-star thresholds, or college simulation formulas.
+## Important limitations
+- This is a **first playable 8.9 build**, not the end of the full 8.9 roadmap. Dedicated defensive attributes, separate Coachability/Behavior rating behavior, richer receiver/pressure breakdowns and complete football-drive tuning are not completed.
+- The college Team screen retains the original consolidated college-football section for compatibility, so a few panels overlap the dedicated Development and Life tabs.
+- The simulation remains an abstraction rather than a complete referee-level play-by-play model. It should be tested across full seasons before judging statistical balance.
+- Existing saves should load using the same `gridiron-life-v5` local storage key. **Export your save from the old build before updating.** Recruitment board version 2 will regenerate automatically on first use.
 
 ## Installation
+Upload the **contents** of the full ZIP to your GitHub Pages repository's root (including index.html, css/, js/, tests/). Overwrite matching files. The update-only ZIP includes just changed files for a Part 8.8 installation.
 
-Upload the contents of the update ZIP into the root of the existing GitHub Pages repository, preserving `js/`. If unsure what version is installed, use the Full ZIP. Browser-local save backups are recommended prior to installing.
-
-## Validation
-
-All previous automated tests plus a new high-school transfer test passed under Node.js. All JavaScript syntax checked; ZIP integrity verified. This release was not subjected to a full Chromium visual playthrough.
-
-
-## Part 8.7 — Position expansion and scheme usage
-- 22 selectable positions (offense, defense, specialists) with position-family training.
-- Running backs/FBs now gain both carries and passing-game targets depending on the school offense; running volume remains materially lower at Air Raid programs.
-- Defensive box score (tackles, TFL, sacks, pass breakups and interceptions), line performance (snaps and blocks), and K/P/LS statistics. These are lightweight simulated estimates; they are **not** a full 22-player snap-by-snap engine.
-- Player profiles and honors calculate position-appropriate output.
-
-## Additional Part 8.7 corrections
-- ESPN-inspired season and game-log tables for passing, rushing, receiving, defense, blocking and kicking; values from saved records only.
-- Position-change request available in Team; no automatic starting job.
-- Scholarship offers limited to a small subset of eligible programs, and recruiting news now distinguishes monitoring from formal offers.
-- RB/FB receiving yardage and touchdown totals shown in profile; biography describes receiving-back usage, coach confidence, and scouting exposure naturally.
-
-
-## Part 8.8
-- 1A/2A ironman and evaluated upper-classification two-way defensive assignments in Team.
-- QB designed runs and scrambles in the high-school game simulation.
-- Rushing/defensive stat lines and game-workload changes reflect participation.
-- College match engine remains a separate simulation; no college two-way claim.
+## Automated verification
+From the expanded game folder, run: `for t in tests/*.js; do node "$t"; done`
