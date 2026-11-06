@@ -60,7 +60,16 @@ function requestPositionChange(pos){
  note('Position change: '+old+' → '+pos+'. Coach reevaluates the depth chart; a starting role is not guaranteed.');
  feedback='Position changed to '+pos+'. Training focus reset; check your team depth chart.';persist();render();
 }
-function positionChangeScreen(){return panel('Change football position','<p>Request a new primary position. Ratings stay unchanged, but the depth-chart evaluation and training categories change. Existing statistics remain credited to your career.</p><div class="line"><span>Current position</span><strong>'+e(game.pos)+'</strong></div><label>New position <select id="positionChangePick">'+Object.keys(POSITION_FAMILIES).map(p=>'<option value="'+p+'" '+(p===game.pos?'selected':'')+'>'+p+'</option>').join('')+'</select></label><button onclick="requestPositionChange(document.getElementById(\'positionChangePick\').value)">Request position change</button>');}
+function positionChangeScreen(){
+ const fits=positionFitRows(game.attrs,game.pos,false);
+ return panel('Change football position',
+  '<p>Request a new primary position. Ratings stay unchanged, but training categories and roster evaluation change. Your position OVR is a fit estimate, not a depth-chart guarantee.</p>'+ 
+  '<div class="line"><span>Current position</span><strong>'+e(game.pos)+' · '+rating(game.attrs,game.pos)+' OVR</strong></div>'+ 
+  '<details><summary>Compare all other positions by current OVR</summary>'+positionFitMarkup(game.attrs,game.pos,false,22)+'</details>'+ 
+  '<label>New position <select id="positionChangePick">'+fits.map(x=>'<option value="'+x.pos+'">'+e(x.pos)+' — '+x.ovr+' OVR</option>').join('')+'</select></label>'+ 
+  '<button onclick="requestPositionChange(document.getElementById(\'positionChangePick\').value)">Request position change</button>');
+}
+
 function schoolTransferScreen(){
  if(game.stage==='college'||game.stage==='recruiting')return '';
  const offseason=[1,2,3,4].includes(game.phase);const prepEligible=game.grade>=10&&rating(game.attrs,game.pos)>=62&&game.gpa>=2.7;
@@ -93,6 +102,46 @@ function draftCost(attributeValues){
   return ATTRS.reduce((sum,k)=>sum+Math.max(0,Number(attributeValues[k])-38),0)+
     Math.max(0,Number(attributeValues.iq)-50)+Math.max(0,Number(attributeValues.behavior)-50);
 }
+// Human-readable descriptions: the overall calculation is deliberately distinct
+// from how ratings interact with on-field plays. Do not promise equal game impact.
+const ATTRIBUTE_EXPLAINS={
+ accuracy:'Throwing/placement accuracy; also used for kicking',
+ arm:'Passing arm strength',
+ vision:'Reading lanes, targets and situations',
+ awareness:'Football recognition and decision-making',
+ speed:'Top-end running speed',
+ accel:'How quickly a player gets up to speed',
+ agility:'Change of direction and body control',
+ elusiveness:'Avoiding or escaping defenders',
+ carrying:'Ball security and handling',
+ power:'Physical strength and contact ability',
+ endurance:'Sustaining effort and resisting fatigue',
+ catching:'Securing passes and loose balls',
+ blocking:'Creating or resisting blocks',
+ routes:'Getting open through route running',
+ release:'Separation or hand/foot technique',
+};
+function positionFitRows(attrs,primary,defensiveOnly=false){
+ const eligible=defensiveOnly?DEFENSIVE_POSITIONS:Object.keys(POSITION_FAMILIES);
+ return eligible.filter(pos=>pos!==primary).map(pos=>({pos,ovr:rating(attrs,pos)}))
+   .sort((a,b)=>b.ovr-a.ovr||a.pos.localeCompare(b.pos));
+}
+function positionFitMarkup(attrs,primary,defensiveOnly=false,limit=9){
+ const candidates=positionFitRows(attrs,primary,defensiveOnly).slice(0,limit);
+ return '<div class="position-fit-list">'+candidates.map((x,i)=>
+  '<div class="line"><span>'+(i===0?'★ ':'')+e(x.pos)+'</span><strong>'+x.ovr+' projected OVR</strong></div>'
+ ).join('')+'</div>';
+}
+function creationFitPreview(values){
+ return '<p class="muted">The comparison below uses your current attribute allocation. It does not guarantee a starting job or coach approval. '+(DEFENSIVE_POSITIONS.includes(draft.position)?'The present two-way feature requires an <strong>offensive primary position</strong>; defensive-first two-way play is not implemented yet.':'Two-way duty currently means a second <strong>defensive</strong> assignment.')+'</p>'+
+   positionFitMarkup(values,draft.position,true,9);
+}
+function creationPositionKeys(pos){
+  return GROUPS[pos].flatMap(group=>group[2]);
+}
+function creationProjectedOvr(values,pos){
+  return rating(values,pos);
+}
 function readCreationAttributes(){
   const values={};for(const k of [...ATTRS,'iq','behavior'])values[k]=Number(document.getElementById('a_'+k).value);
   return values;
@@ -115,6 +164,10 @@ function showBudget(changed){
   if(remaining)remaining.textContent=(100-cost)+' points available';
   const budgetBar=document.querySelector?.('.signup-budget i');if(budgetBar)budgetBar.style.width=cl(cost,0,100)+'%';
   for(const k of [...ATTRS,'iq','behavior'])document.getElementById('v_'+k).textContent=values[k];
+  const projected=document.getElementById('projected-ovr');
+  if(projected)projected.textContent=creationProjectedOvr(values,draft.position)+' OVR';
+  const fit=document.getElementById('creation-two-way-fit');
+  if(fit)fit.innerHTML=creationFitPreview(values);
   draft.points=Object.fromEntries(ATTRS.map(k=>[k,values[k]]));
   draft.intelligence=values.iq;draft.behavior=values.behavior;
   return cost;
@@ -135,13 +188,27 @@ function setupScreen(){
     '<div class="signup-section-head"><span class="signup-section-number">02</span><div><strong>HOUSEHOLD & SCHOOL</strong><small>Program registration and family context</small></div></div>'+
     '<label>Family / household background<select id="bg">'+BG.map(x=>'<option value="'+x[0]+'" '+(x[0]===draft.bg?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+
     schoolChoiceRow();
-  const attributeInputs=[...ATTRS,'iq','behavior'].map(k=>{
+  const primaryKeys=creationPositionKeys(draft.position);
+  const secondaryKeys=ATTRS.filter(k=>!primaryKeys.includes(k));
+  const attributeInput=(k)=>{
     const baseline=k==='iq'||k==='behavior'?50:38;
     const value=k==='iq'?draft.intelligence:k==='behavior'?draft.behavior:draft.points[k]??38;
     return '<label class="line"><span>'+e(k==='iq'?'Academic intelligence':k==='behavior'?'Behavior / Coachability':k.replace(/\b\w/g,c=>c.toUpperCase()))+'</span><strong id="v_'+k+'">'+value+'</strong></label>'+
+      (ATTRIBUTE_EXPLAINS[k]?'<small class="muted">'+e(ATTRIBUTE_EXPLAINS[k])+'</small>':'')+ 
       '<input aria-label="'+e(k)+' creation attribute" type="range" id="a_'+k+'" min="'+(baseline===50?35:28)+'" max="'+(baseline===50?85:70)+'" value="'+value+'" oninput="showBudget(this)">';
-  }).join('');
-  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.9 · Registration</span></div>'+
+  };
+  const primaryGroups=GROUPS[draft.position].map(group=>
+    '<div class="creation-position-group"><div class="line"><strong>'+e(group[1])+'</strong><small>Counts toward '+e(draft.position)+' OVR</small></div>'+
+    group[2].map(attributeInput).join('')+'</div>').join('');
+  const secondaryInputs=secondaryKeys.map(attributeInput).join('');
+  const generalInputs=['iq','behavior'].map(attributeInput).join('');
+  const attributeInputs='<div class="creation-priority-head"><strong>PRIMARY · '+e(draft.position)+' POSITION ATTRIBUTES</strong><span class="chip" id="projected-ovr">'+creationProjectedOvr({...Object.fromEntries(ATTRS.map(k=>[k,draft.points[k]??38]))},draft.position)+' OVR</span></div>'+
+    '<p class="muted">The current OVR formula averages 10 position-specific ratings equally (10% each). This is an overall <strong>summary</strong>, not a claim that all ten skills matter equally during games. Actual play results also depend on role, opportunities, teammates and opponents.</p>'+
+    primaryGroups+
+    (secondaryKeys.length?'<details class="creation-secondary"><summary>Other athletic attributes ('+secondaryKeys.length+') · do not affect '+e(draft.position)+' OVR directly</summary><p class="muted">These may matter if you change positions or take another role later. All still use your 100-point budget.</p>'+secondaryInputs+'</details>':'')+
+    '<div class="creation-general"><strong>PERSONAL ATTRIBUTES</strong><p class="muted">Academic intelligence and Behavior / Coachability use creation points but are not included in the athletic OVR average.</p>'+generalInputs+'</div>'+
+    '<details class="creation-secondary" open><summary>Two-way football: compare defensive positions</summary><div id="creation-two-way-fit">'+creationFitPreview({...Object.fromEntries(ATTRS.map(k=>[k,draft.points[k]??38]))})+'</div></details>';
+  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.9.3 · Registration</span></div>'+
     '<div class="signup-masthead"><div class="signup-overline">INTERSCHOLASTIC ATHLETICS · INTAKE DOCUMENT</div><h1>Create your freshman</h1><p>High School Football Registration</p><div class="signup-stamp">FORM GL–09 · NEW STUDENT · ACADEMIC YEAR 1</div></div>'+
     '<section class="panel signup-sheet">'+identity+'</section>'+
     panel('03 · School profile & program evaluation','<p class="muted">Review the program you are registering for. School choice affects football opportunities and resources.</p><div id="school-profile">'+selectedSchoolStats()+'</div>')+
@@ -153,7 +220,7 @@ function setupScreen(){
     '<button id="start-career" onclick="start()">Submit Registration & Begin Career</button></section>';
 }
 
-function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.5 Part 8.9 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
+function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.5 Part 8.9.3 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
 
 function healthPanel(compact=false){
   const h=healthState(),last=h.weekReports[0];
@@ -312,7 +379,7 @@ function historyScreen(){
   return panel('Player biography archive','<p>Registration, milestones, and career snapshots are available in the Player Profile tab.</p><button class="alt" onclick="tab=&#39;profile&#39;;render()">View player profile and archive</button>')+awardsHistoryPanel()+summerHistoryPanel()+positionRoomHistory()+panel('Season records',seasons||'<p>Your completed school years will appear here.</p>')
     +seasonStatsScreen()+panel('Play-by-play details',games)
     +panel('Career journal',game.history.map(x=>'<div class="log"><strong>'+e(x.title)+'</strong><br>'+e(x.text)+'</div>').join(''))
-    +panel('Save and backup','<p>Autosave for v0.5 Part 8.9 uses a separate browser save slot from v0.4. Your original v0.4 save stays untouched for rollback. Export regularly before updating GitHub Pages.</p><div class="buttons"><button onclick="exportSave()">Export Save JSON</button><label style="max-width:240px">Import saved JSON<input type="file" accept="application/json" onchange="importSave(this)"></label><button class="alt" onclick="resetV5()">New Career</button></div>');
+    +panel('Save and backup','<p>Autosave for v0.5 Part 8.9.3 uses a separate browser save slot from v0.4. Your original v0.4 save stays untouched for rollback. Export regularly before updating GitHub Pages.</p><div class="buttons"><button onclick="exportSave()">Export Save JSON</button><label style="max-width:240px">Import saved JSON<input type="file" accept="application/json" onchange="importSave(this)"></label><button class="alt" onclick="resetV5()">New Career</button></div>');
 }
 
 function recruitmentHomeScreen(){return panel('College signing', '<p>High school is complete. Review offers and choose your next school.</p><button onclick="tab=\'recruiting\';render()">Review college offers</button>')+panel('Your career', '<button class="alt" onclick="tab=\'profile\';render()">Player profile</button>');}
@@ -351,10 +418,10 @@ function collegeSetFocus(key,val){
 }
 function render(){
  let el=document.getElementById('app');if(!game){el.innerHTML=setupScreen();showBudget();return}
- const footer='<footer>Gridiron Life v0.5 Part 8.9 · Offline, fictional football universe · Saved locally · College simulation and eligibility are simplified.</footer>';
+ const footer='<footer>Gridiron Life v0.5 Part 8.9.3 · Offline, fictional football universe · Saved locally · College simulation and eligibility are simplified.</footer>';
  if(game.stage==='recruiting'){
    const nav='<div class="tabs"><button class="'+(tab==='home'?'active':'alt')+'" onclick="tab=\'home\';render()">Home</button><button class="'+(tab==='recruiting'?'active':'alt')+'" onclick="tab=\'recruiting\';render()">Recruiting & Signing</button><button class="alt" onclick="tab=\'profile\';render()">High School Profile</button><button class="alt" onclick="tab=\'history\';render()">History & Save</button></div>';
-   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.9 · Graduate</span></div><h1>'+e(game.name)+' · College recruitment</h1>'+nav+(tab==='home'?recruitmentHomeScreen():tab==='profile'?profileScreen():tab==='history'?historyScreen():recruitingScreen())+footer;return;
+   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.9.3 · Graduate</span></div><h1>'+e(game.name)+' · College recruitment</h1>'+nav+(tab==='home'?recruitmentHomeScreen():tab==='profile'?profileScreen():tab==='history'?historyScreen():recruitingScreen())+footer;return;
  }
  if(game.stage==='college'||game.stage==='collegeComplete'){
    const c=collegeState();
@@ -362,21 +429,28 @@ function render(){
    if(!pages.some(x=>x[0]===tab))tab='home';
    const nav='<div class="tabs">'+pages.map(([id,title])=>'<button class="'+(tab===id?'active':'alt')+'" onclick="tab=\''+id+'\';render()">'+title+'</button>').join('')+'</div>';
    const views={home:collegeHomeScreen,team:collegeScreen,develop:collegeDevelopmentScreen,life:collegeLifeScreen,profile:collegeProfileScreen,college:collegeScreen,history:historyScreen};
-   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.9 · College Year '+c.year+'</span></div><h1>'+e(game.name)+' · '+e(game.pos)+' · '+e(c.program.name)+'</h1>'+nav+(feedback?'<p class="notice">'+e(feedback)+'</p>':'')+views[tab]()+footer;return;
+   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 Part 8.9.3 · College Year '+c.year+'</span></div><h1>'+e(game.name)+' · '+e(game.pos)+' · '+e(c.program.name)+'</h1>'+nav+(feedback?'<p class="notice">'+e(feedback)+'</p>':'')+views[tab]()+footer;return;
  }
  let content={home:homeScreen,career:careerScreen,profile:profileScreen,team:teamScreen,develop:developScreen,life:lifeScreen,summer:summerScreen,recruiting:recruitingScreen,history:historyScreen};
  el.innerHTML=commonHeader()+content[tab]()+footer;
 }
 
 function twoWayPanel(){
+  if(DEFENSIVE_POSITIONS.includes(game.pos))return panel('Two-way / Ironman football',
+    '<p>The current two-way feature only supports <strong>offense as the primary position</strong> and a defensive secondary position. A defensive starter cannot currently add an offensive assignment. Use the primary position comparison above to evaluate offensive positions; defensive-first two-way play remains an unfinished feature.</p>');
   const d=twoWayDecision(),pos=game.secondaryPosition||'';
+  const fits=positionFitRows(game.attrs,game.pos,true),opts=fits.map(x=>{
+    const allowed=game.school.classif<=2||((x.ovr>=(game.school.classif<=4?57:68))&&(rating(game.attrs,game.pos)>=(game.school.classif<=4?55:68)));
+    return '<option value="'+x.pos+'" '+(x.pos===pos?'selected':'')+'>'+e(x.pos)+' · '+x.ovr+' OVR · '+(allowed?'Eligible to request':'Below coach threshold')+'</option>';
+  }).join('');
   return panel('Two-way / Ironman football',
-    '<div class="line"><span>Primary position</span><strong>'+e(game.pos)+'</strong></div>'+
-    '<div class="line"><span>Secondary assignment</span><strong>'+e(pos||'None')+'</strong></div>'+
-    '<div class="line"><span>Coach evaluation</span><strong>'+e(d.reason)+'</strong></div>'+
-    '<label>Defensive position <select id="secondaryPos"><option value="">None</option>'+
-    DEFENSIVE_POSITIONS.map(p=>'<option value="'+p+'" '+(p===pos?'selected':'')+'>'+p+'</option>').join('')+'</select></label>'+
+    '<div class="line"><span>Primary position</span><strong>'+e(game.pos)+' · '+rating(game.attrs,game.pos)+' OVR</strong></div>'+ 
+    '<div class="line"><span>Secondary assignment</span><strong>'+e(pos||'None')+'</strong></div>'+ 
+    '<div class="line"><span>Coach evaluation</span><strong>'+e(d.reason)+'</strong></div>'+ 
+    '<p class="muted">All nine defensive positions are ranked below by your <strong>current ratings</strong>. Higher OVR means better numerical fit, not necessarily more defensive snaps, a starting role, or better performance in every game.</p>'+ 
+    positionFitMarkup(game.attrs,game.pos,true,9)+
+    '<label>Defensive position <select id="secondaryPos"><option value="">None</option>'+opts+'</select></label>'+ 
     '<button onclick="requestTwoWay(document.getElementById(\'secondaryPos\').value,true)">Request two-way duty</button> '+
-    '<button class="alt" onclick="requestTwoWay(null,false)">Offense only</button>'+
-    '<details><summary>?</summary><p>1A and 2A schools allow more ironman assignments. At larger schools coaches require stronger primary and secondary evaluations. Playing both ways adds defensive snaps, game statistics and physical workload without doubling training gains.</p></details>');
+    '<button class="alt" onclick="requestTwoWay(null,false)">Offense only</button>'+ 
+    '<details><summary>How are assignments decided?</summary><p>1A and 2A programs approve two-way requests at any defensive position. 3A–4A schools currently require 57 secondary OVR and 55 primary OVR; 5A–6A schools require 68 in both. Coach approval is not the same as guaranteed snaps. Two-way duty adds physical workload and does not double development.</p></details>');
 }

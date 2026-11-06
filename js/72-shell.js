@@ -9,7 +9,7 @@
   const stage=game.stage||'highschool';
   const bar=host.querySelector(':scope > .bar');
   const primary=host.querySelector(':scope > .tabs');
-  const second=host.querySelector(':scope > .subtabs');
+  const second=host.querySelector(':scope > .hybrid-nav, :scope > .subtabs');
   if(!bar || !primary){document.body.classList.remove('game-shell-active');return;}
   document.body.classList.add('game-shell-active');
   const prior=host.querySelector('.shell-scroll');
@@ -24,7 +24,7 @@
   if(stats){const summary=document.createElement('div');summary.className='shell-quickstats';
     Array.from(stats.children).slice(0,5).forEach(tile=>{let value=tile.querySelector('.num')?.textContent||'';let label=tile.querySelector('small')?.textContent||'';const span=document.createElement('span');span.innerHTML='<strong></strong><small></small>';span.querySelector('strong').textContent=value;span.querySelector('small').textContent=label;summary.appendChild(span);});fixedHeader.appendChild(summary);stats.remove();}
   bar.remove();
-  const bottom=document.createElement('nav');bottom.className='shell-bottom';bottom.setAttribute('aria-label','Main navigation');
+  const bottom=document.createElement('nav');bottom.className='shell-bottom shell-bottom-grid';bottom.setAttribute('aria-label','Main navigation');
   Array.from(primary.querySelectorAll('button')).forEach(button=>{
     const b=button.cloneNode(true);b.classList.toggle('selected',button.classList.contains('active'));
     const label=b.textContent.trim();b.innerHTML='';
@@ -43,7 +43,7 @@
   const changed=lastTab!==tab || lastStage!==stage;
   scroller.scrollTop=changed?0:(scrolls[stage+'|'+tab]||0);
   lastTab=tab;lastStage=stage;
-  if(second){second.addEventListener('click',e=>{if(e.target.closest('.subtab'))scrolls[stage+'|'+tab]=0;});}
+  if(second){second.addEventListener('click',e=>{if(e.target.closest('.subtab,.hybrid-category'))scrolls[stage+'|'+tab]=0;});}
  }
  render=function(){previous();shell();};
 })();
