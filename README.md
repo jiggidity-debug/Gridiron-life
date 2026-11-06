@@ -1,19 +1,22 @@
-# Gridiron Life v0.5 — Part 8.9 (first playable build)
+# Gridiron Life v0.5 — Part 8.9.3: Hybrid navigation
 
-## What changed
-- **College HUD continuity:** college now offers Home, Team, Development, Life, Player Profile, College Football, and History/Save. College Development shows original player attributes, weekly commitments, skill focus and condition. College Life exposes academics, eligibility, money and NIL. College Profile presents current college identity and career stats instead of appending the obsolete high-school player profile.
-- **On-field scoring:** high-school offense now tracks field position, downs, and drives. Touchdowns are awarded on end-zone plays, and QB/RB/receiver TD statistics are credited from those plays rather than independent dice rolls. College produces game scoring and box-score contributions in the same possession simulation rather than rolling the final score before generating player statistics.
-- **Recruiting corrections:** new and migrated prospect boards generate 1,600 unique full names, represent all 22 playable positions, and preserve the intended Top 250 OVR bands; persisted board version increased to 3.
-- **College development:** training focus now scales against the actual college training allocation, rather than high-school allocation.
+## Changes in Part 8.9.3
 
-## Important limitations
-- This is a **first playable 8.9 build**, not the end of the full 8.9 roadmap. Dedicated defensive attributes, separate Coachability/Behavior rating behavior, richer receiver/pressure breakdowns and complete football-drive tuning are not completed.
-- The college Team screen retains the original consolidated college-football section for compatibility, so a few panels overlap the dedicated Development and Life tabs.
-- The simulation remains an abstraction rather than a complete referee-level play-by-play model. It should be tested across full seasons before judging statistical balance.
-- Existing saves should load using the same `gridiron-life-v5` local storage key. **Export your save from the old build before updating.** Recruitment board version 2 will regenerate automatically on first use.
+- Replaced swipe-only, horizontal section navigation with **visible category buttons** and an **expandable set of section buttons**. Select Team > Coach > Philosophy / Player Usage / Trust, or another category, without searching a sideways-scroll menu.
+- Main navigation is displayed as a compact, wrapping grid in the fixed bottom HUD (no horizontal swiping).
+- High school and college continue to share the HUD approach.
+- Added Coach information under Team drawn from existing program schemes, run preference, actual role and general high-school coach trust where recorded.
+- Coach panels explicitly identify specialist usage and position-specific trust as **future gameplay systems** rather than claiming those mechanics already exist.
+- Existing screen content, simulation, attribute values, and save format are unchanged.
+
+## Known issues / next game updates
+
+- College offseason currently skips most of the between-season development cycle.
+- Weighted position attributes, dynamic archetypes, multi-position packages, position-specific familiarity/trust and expanded team-wide depth charts are not part of this HUD-only patch.
+- The coaching panels currently report existing information rather than adding new coach decisions or statistical balancing.
 
 ## Installation
-Upload the **contents** of the full ZIP to your GitHub Pages repository's root (including index.html, css/, js/, tests/). Overwrite matching files. The update-only ZIP includes just changed files for a Part 8.8 installation.
 
-## Automated verification
-From the expanded game folder, run: `for t in tests/*.js; do node "$t"; done`
+Extract the ZIP. Upload the **contents** of the full ZIP to the root of your GitHub Pages repository, preserving `index.html`, `css/`, `js/` and `tests/`. The update-only archive contains only the files changed from Part 8.9.2. GitHub Pages cannot serve the game from the ZIP directly.
+
+**Back up your save before updating.** This build retains the existing `gridiron-life-v5` browser save slot.

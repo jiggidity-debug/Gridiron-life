@@ -86,3 +86,31 @@ body.game-shell-active main#app{height:100dvh;width:100%;max-width:950px;display
 .section-help-body p:last-child{margin-bottom:0}
 .shell-scroll>.panel{padding:13px 14px}.shell-scroll>.panel h2{font-size:17px;margin-bottom:9px}
 .shell-scroll>.panel p{margin:7px 0}.shell-scroll>.panel .tile{padding:10px}
+
+/* Part 8.7: tables scroll horizontally within their own report. */
+.stat-category-tabs{display:flex;gap:6px;overflow-x:auto;padding:7px 0 12px;scrollbar-width:thin}.stat-category-tabs button{white-space:nowrap;font-size:.8rem;padding:8px 10px}.stat-table-wrap{max-width:100%;overflow:auto}.stat-table{width:100%;border-collapse:collapse;min-width:470px;font-size:.86rem}.stat-table th,.stat-table td{padding:10px 9px;border-bottom:1px solid #33495d;text-align:right;white-space:nowrap}.stat-table th:first-child,.stat-table td:first-child{text-align:left;position:sticky;left:0;background:#15273a;min-width:120px}.stat-table th{font-size:.72rem;letter-spacing:.05em;color:#b2c9da}.stat-table tbody tr:nth-child(2n){background:#1b3045}
+
+/* Part 8.9.1: readable position-specific creation allocation. */
+.creation-priority-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:14px 0 8px}
+.creation-position-group{padding:12px 0;border-bottom:1px solid var(--line,rgba(150,150,150,.18))}
+.creation-position-group>.line{margin-bottom:10px;gap:12px}
+.creation-position-group>.line small{opacity:.7;text-align:right}
+.creation-secondary,.creation-general{margin-top:16px;padding:12px;border:1px solid var(--line,rgba(150,150,150,.18));border-radius:10px}
+.creation-secondary summary{cursor:pointer;font-weight:700;line-height:1.5}
+.creation-secondary[open] summary{margin-bottom:12px}
+.creation-general>strong{display:block;margin-bottom:6px}
+
+/* Part 8.9.3: visible category grid + expandable detail buttons; no horizontal swipe menus. */
+.hybrid-nav{display:flex;flex-direction:column;gap:7px;padding:9px 7px;background:#102136;border-bottom:1px solid #36516c;max-height:48dvh;overflow-y:auto;overflow-x:hidden;flex:none}
+.hybrid-categories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.hybrid-category{padding:10px 7px;min-width:0;white-space:normal;overflow-wrap:anywhere;text-align:center;background:#20394f;border:1px solid #48647b;color:#e8f1f9;border-radius:8px;font-size:12px;font-weight:700}
+.hybrid-category.selected{background:#eec66d;border-color:#eec66d;color:#122336}
+.hybrid-category.selected:after{content:' ▾'}
+.hybrid-subsections[hidden]{display:none!important}
+.hybrid-detail-buttons{display:flex;flex-wrap:wrap;gap:6px;padding:5px 0 3px}
+.hybrid-detail-buttons .subtab{flex:1 1 130px;min-width:0;max-width:100%;white-space:normal;border:1px solid #48647b;color:#d8e7f4;background:#1a344e;border-radius:8px;font-size:12px;padding:9px 9px}
+.hybrid-detail-buttons .subtab.selected{background:#f2c560;color:#142337;border-color:#f2c560;font-weight:800}
+.shell-bottom-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow-x:hidden;gap:2px;max-height:130px;overflow-y:auto}
+.shell-bottom-grid button{min-width:0;max-width:none;flex-basis:auto;white-space:normal;line-height:1.1;text-align:center;overflow-wrap:anywhere}
+.shell-bottom-grid .shell-icon{font-size:16px;line-height:17px}
+@media(max-width:520px){.hybrid-categories{grid-template-columns:repeat(2,minmax(0,1fr))}.hybrid-category{font-size:11px;padding:8px 5px}.hybrid-nav{max-height:43dvh}.shell-bottom-grid{grid-template-columns:repeat(5,minmax(0,1fr));padding:4px 1px calc(5px + env(safe-area-inset-bottom,0px))}.shell-bottom-grid button{font-size:9px;padding:4px 2px}.shell-bottom-grid .shell-icon{font-size:15px}}
