@@ -7,6 +7,8 @@
   'Weekly availability':'Allocate available hours across training, study, work, social life and recovery. Team practice uses its own mandatory hours.',
   'Team practice':'Your effort affects development, stress and fatigue.',
   'Individual training':'Allocate extra-training hours to specific skills. Progress applies when you advance the week.',
+  'Money & choices':'Use money to buy items and opportunities. Costs and effects appear on each choice.',
+  'Exposure':'Exposure reflects visibility earned through performances, camps, and activities.',
   'Squad placement':'Select your preferred squad, subject to grade eligibility and coach decisions. Coaches rank players on ability and fit; a higher-rated player can win a starting job. Dual duty does not guarantee snaps.',
   'Current scouting report':'Scouting combines your current ability, position and competition level; demonstrated results are reported separately.',
   'Living player biography':'The biography changes from your recorded development, statistics and achievements. No accomplishments are fabricated.',

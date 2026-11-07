@@ -9,17 +9,64 @@ function schoolGen(){
   return result;
 }
 
-function rating(a,p){let keys=GROUPS[p].flatMap(g=>g[2]);return Math.round(keys.reduce((v,k)=>v+(a[k]||35),0)/keys.length)}
+// Position OVR for the player's modern Part 9 skill system. This affects displayed
+// positional fit, depth-chart comparisons and existing OVR consumers; the detailed
+// play-by-play football simulation is a separate, currently paused feature.
+// Each positional profile weights physical tools differently, then combines them
+// with football-specific technical ability. NPCs retain the established legacy OVR.
+const POSITION_OVR_PROFILES={
+ QB:{physical:{strength:1,accel:1,speed:1,agility:1,stamina:1},skills:{throwPower:3,shortAccuracy:4,deepAccuracy:2,decisionMaking:4,pocketPresence:3,ballHandling:1},physicalShare:.24},
+ RB:{physical:{speed:4,accel:4,agility:3,strength:2,stamina:2,jumping:1},skills:{vision:4,elusiveness:3,carrying:3,breakTackle:3,ballHandling:2,catching:1},physicalShare:.45},
+ FB:{physical:{strength:5,stamina:3,accel:2,agility:1,speed:1,jumping:1},skills:{runBlocking:4,blockTechnique:3,carrying:2,vision:2,breakTackle:2,catching:1},physicalShare:.43},
+ WR:{physical:{speed:4,accel:4,agility:3,jumping:3,stamina:1,strength:1},skills:{catching:4,routes:4,release:3,ballHandling:1,carrying:1},physicalShare:.43},
+ TE:{physical:{strength:3,speed:2,accel:2,jumping:2,stamina:2,agility:1},skills:{catching:3,routes:2,runBlocking:3,passBlocking:3,release:2,blockTechnique:2},physicalShare:.38},
+ LT:{physical:{strength:5,agility:3,accel:2,stamina:3,jumping:1},skills:{passBlocking:5,runBlocking:3,blockTechnique:4,blockRecognition:4},physicalShare:.36},
+ RT:{physical:{strength:5,agility:2,accel:2,stamina:3,jumping:1},skills:{runBlocking:4,passBlocking:4,blockTechnique:4,blockRecognition:3},physicalShare:.37},
+ LG:{physical:{strength:5,accel:3,agility:2,stamina:3,jumping:1},skills:{runBlocking:5,passBlocking:3,blockTechnique:4,blockRecognition:3},physicalShare:.39},
+ RG:{physical:{strength:5,accel:3,agility:2,stamina:3,jumping:1},skills:{runBlocking:5,passBlocking:3,blockTechnique:4,blockRecognition:3},physicalShare:.39},
+ C:{physical:{strength:5,stamina:3,agility:2,accel:1,jumping:1},skills:{blockRecognition:5,blockTechnique:4,runBlocking:4,passBlocking:3},physicalShare:.35},
+ DE:{physical:{strength:4,accel:3,speed:2,agility:2,stamina:2,jumping:1},skills:{passRush:5,blockShedding:4,runDefense:3,tackling:3},physicalShare:.43},
+ DT:{physical:{strength:6,accel:2,stamina:3,agility:1,speed:1},skills:{runDefense:5,blockShedding:5,passRush:3,tackling:2},physicalShare:.45},
+ NT:{physical:{strength:7,stamina:3,accel:1,agility:1},skills:{runDefense:5,blockShedding:5,tackling:3,passRush:2},physicalShare:.47},
+ OLB:{physical:{speed:3,accel:3,agility:2,strength:3,stamina:2,jumping:1},skills:{tackling:3,runDefense:3,passRush:3,manCoverage:2,zoneCoverage:2,playRecognition:2},physicalShare:.43},
+ ILB:{physical:{strength:4,accel:3,stamina:3,agility:2,speed:1},skills:{tackling:4,runDefense:4,playRecognition:3,zoneCoverage:2,blockShedding:2},physicalShare:.42},
+ MLB:{physical:{strength:4,stamina:3,accel:3,agility:2,speed:1},skills:{tackling:4,runDefense:4,playRecognition:4,zoneCoverage:2,blockShedding:1},physicalShare:.42},
+ CB:{physical:{speed:5,accel:5,agility:4,jumping:2,stamina:1,strength:1},skills:{manCoverage:5,pressCoverage:3,zoneCoverage:2,ballSkills:3,catching:2,playRecognition:2},physicalShare:.47},
+ FS:{physical:{speed:4,accel:3,agility:3,jumping:3,stamina:2,strength:1},skills:{zoneCoverage:5,playRecognition:4,ballSkills:3,tackling:2,catching:2,manCoverage:1},physicalShare:.43},
+ SS:{physical:{strength:3,speed:3,accel:3,agility:2,jumping:2,stamina:2},skills:{tackling:4,zoneCoverage:3,playRecognition:3,runDefense:2,ballSkills:2,manCoverage:2},physicalShare:.43},
+ K:{physical:{strength:3,agility:2,stamina:2,accel:1},skills:{kickPower:5,kickAccuracy:6,decisionMaking:1},physicalShare:.27},
+ P:{physical:{strength:2,agility:2,stamina:2,accel:1},skills:{kickPower:3,kickAccuracy:2,puntTechnique:7},physicalShare:.26},
+ LS:{physical:{strength:3,agility:2,stamina:2,accel:1},skills:{blockTechnique:4,blockRecognition:3,passBlocking:3,ballHandling:3},physicalShare:.32}
+};
+function weightedAttributeMean(values,weights){
+ let numerator=0,denominator=0;
+ for(const [key,w] of Object.entries(weights)){numerator+=Math.max(0,Math.min(99,Number(values?.[key])||0))*w;denominator+=w}
+ return denominator?numerator/denominator:0;
+}
+function playerPositionOvr(pos,athletic,technical){
+ const profile=POSITION_OVR_PROFILES[pos]||POSITION_OVR_PROFILES.RB;
+ const physical=weightedAttributeMean(athletic,profile.physical);
+ const skill=weightedAttributeMean(technical,profile.skills);
+ return cl(Math.round(physical*profile.physicalShare+skill*(1-profile.physicalShare)),0,99);
+}
+function rating(a,p){
+ if(game&&a===game.attrs&&game.athleticAttributes&&game.technicalAttributes)return playerPositionOvr(p,game.athleticAttributes,game.technicalAttributes);
+ const keys=GROUPS[p].flatMap(g=>g[2]);return Math.round(keys.reduce((v,k)=>v+(a[k]??35),0)/keys.length);
+}
 
 function levelsForSchool(school){return school.classif>=4?['Freshman','JV','Varsity']:school.classif>=2?['JV','Varsity']:['Varsity']}
 
 function newNpc(school,pos,grade,id){let attrs={};ATTRS.forEach(k=>{let base=R(30,54)+Math.round((school.prestige-50)/9)+(grade-9)*R(2,4);attrs[k]=cl(base,25,91)});return {id,name:pick(FN)+' '+pick(LN),grade,pos,attrs,ovr:rating(attrs,pos),joinedYear:game?.year||1}}
 
-function createRoster(school,pos){let people=[];for(let grade=9;grade<=12;grade++)for(let i=0;i<5;i++)people.push(newNpc(school,pos,grade,'npc-'+(grade*10+i)));return people}
+function positionRoomPerGrade(school){
+ const cls=Number(school?.classif)||3;
+ return ({1:1,2:2,3:2,4:3,5:4,6:5})[cls]||3;
+}
+function createRoster(school,pos){let people=[],n=positionRoomPerGrade(school);for(let grade=9;grade<=12;grade++)for(let i=0;i<n;i++)people.push(newNpc(school,pos,grade,'npc-'+(grade*10+i)));return people}
 
 function initialDraft(){let p={};ATTRS.forEach(k=>p[k]=38);return p}
 
-function makeFreshmen(count=5){let added=[];for(let i=0;i<count;i++){game.nextNpcId=(game.nextNpcId||1000)+1;added.push(newNpc(game.school,game.pos,9,'npc-'+game.nextNpcId))}return added}
+function makeFreshmen(count=positionRoomPerGrade(game.school)){let added=[];for(let i=0;i<count;i++){game.nextNpcId=(game.nextNpcId||1000)+1;added.push(newNpc(game.school,game.pos,9,'npc-'+game.nextNpcId))}return added}
 
 function annualRosterTurnover(){
   let departing=game.team.filter(x=>x.grade>=12);
@@ -27,8 +74,8 @@ function annualRosterTurnover(){
   game.alumni.push(...departing.map(x=>({...x,graduatedAfterYear:game.year,ovr:rating(x.attrs,x.pos)})));
   let staying=game.team.filter(x=>x.grade<12);
   for(let x of staying){x.grade++;for(let k of ATTRS)x.attrs[k]=cl(x.attrs[k]+R(0,3),20,95);x.ovr=rating(x.attrs,x.pos)}
-  game.team=[...staying,...makeFreshmen(5)];
-  return {graduates:departing.length,entrants:5,names:departing.map(x=>x.name)};
+  game.team=[...staying,...makeFreshmen(positionRoomPerGrade(game.school))];
+  return {graduates:departing.length,entrants:positionRoomPerGrade(game.school),names:departing.map(x=>x.name)};
 }
 
 /* Part 7: program-wide position management.  One *primary* squad per athlete,

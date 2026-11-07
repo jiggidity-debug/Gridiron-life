@@ -133,3 +133,12 @@ body.game-shell-active main#app{height:100dvh;width:100%;max-width:950px;display
 .part9-header-context{font-size:.73rem;color:#c7d8e4;padding:0 10px 6px}
 .part9-life-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:5px 0 12px}
 .part9-life-tabs button{min-width:0;font-size:.85rem;padding:9px 5px}
+
+/* Track 1 mobile cleanup */
+.part9-archetype{display:inline-block;font-size:.72rem;font-weight:600;margin-left:.6rem;padding:.15rem .48rem;border:1px solid var(--border,#697584);border-radius:20px;vertical-align:middle}
+.part9-save-tools{display:flex;justify-content:flex-end;gap:.4rem;flex-wrap:wrap}
+.part9-save-tools button{font-size:.7rem;padding:.25rem .55rem;min-height:28px}
+.inline-help{display:inline-block;vertical-align:middle;margin-top:.35rem;max-width:100%}
+.inline-help summary{cursor:pointer;border:1px solid currentColor;border-radius:100%;width:1.5rem;height:1.5rem;text-align:center;list-style:none;font-weight:700}
+.inline-help p{font-size:.85rem}
+.gpa-trend{font-size:1.1rem}

@@ -52,7 +52,7 @@ function recruitingState(){
  if(!game)return null;
  if(!game.recruiting){game.recruiting={board:[],createdYear:0,stars:0,rank:null,offers:[],scouting:0};}
  const r=game.recruiting;
- if(!Array.isArray(r.board)||r.board.length!==1600 || !r.boardVersion || r.boardVersion<3){
+ if(!Array.isArray(r.board)||r.board.length!==1600 || !r.boardVersion || r.boardVersion<4){
   // Distinct named prospects and the full 22-position football spectrum.
   // Stable IDs for save/load; regenerate legacy boards that were QB/RB/WR/TE only.
   const first=['Marcus','Devon','Andre','Jaylen','Evan','Malik','Cameron','Noah','Tyler','Elijah','Devin','Darius','Isaiah','Miles','Micah','Jalen','Ethan','Bryce','Colton','Aaron','Joshua','Dante','Kendrick','Terrence','Jamal','Jeremiah','Tristan','Jordan','Caleb','Xavier','Trey','Christian','Amari','Zion','Nathan','Aiden','Julian','Anthony','Eric','Dominic'];
@@ -61,8 +61,11 @@ function recruitingState(){
   // Shuffle the complete combination table once: 40 x 40 = 1,600 unique names.
   const names=[];for(const fn of first)for(const ln of last)names.push(fn+' '+ln);
   for(let i=names.length-1;i>0;i--){const j=R(0,i);[names[i],names[j]]=[names[j],names[i]];}
-  r.board=Array.from({length:1600},(_,i)=>({id:i+1,name:names[i],pos:positions[(i*7+Math.floor(i/positions.length))%positions.length],state:states[i%states.length],score:i<2?77:i<250?58+Math.floor(Math.pow((249-i)/249,.75)*19):28+Math.min(29,Math.floor(Math.pow((1600-i)/1350,.78)*30))}));
-  r.boardVersion=3;
+  // Ratings represent recruiting-board ability, not enrollment classification.
+  // A 77 generational prospect appears roughly once every five generated classes.
+  const exceptional=(game.year||1)%5===0?77:(game.year||1)%3===0?75:74;
+  r.board=Array.from({length:1600},(_,i)=>({id:i+1,name:names[i],pos:positions[(i*7+Math.floor(i/positions.length))%positions.length],state:states[i%states.length],score:i===0?exceptional:i<5?73+(i%2):i<230?68+((i*17+Math.floor(i/5))%5):i<250?65+(i%3):Math.max(28,64-Math.floor((i-250)/70))}));
+  r.boardVersion=4;
  }
 
  const recent=(game.games||[]).filter(x=>x.level==='Varsity');

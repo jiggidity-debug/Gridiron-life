@@ -33,25 +33,25 @@ function familyResources(){if(!family)return 75;const c=family.condition;const b
 function heightSuggestion(){if(!family)return 69;return Math.round((family.male.height+family.female.height+5)/2)}
 function ensureFamily(){if(!family)family=rollFamily()}
 function rerollFamily(){if(rolls<=0)return;rolls--;family=rollFamily();render()}
-function pointsCost(n){return Math.ceil(Math.max(0,Number(n||0))/3)}
+function pointsCost(n){return Math.max(0,Math.round(Number(n)||0))}
 function spent(){return Object.values(allocation).reduce((n,v)=>n+pointsCost(v),0)}
 function creatorFamilyHtml(){ensureFamily();const [conditionLabel]=[CONDITIONS.find(x=>x[0]===family.condition)?.[1]||'Together'];
  const display=(parent,unknown)=>'<div class="tile"><strong>'+(unknown?'Not known to player':e(parent.name))+'</strong><p class="muted">'+(unknown?'Background undisclosed':e(parent.occupation+' · '+parent.trait))+'</p><small>Height: '+(unknown?'Unknown':Math.floor(parent.height/12)+'\' '+parent.height%12+'\"')+' · IQ: '+(unknown?'Unknown':parent.iq)+'</small><p class="muted">'+(parent.formerAthlete?'Athletic experience':'Background varies')+'</p></div>';
  return '<div class="line"><strong>Family roll · '+e(conditionLabel)+'</strong><span>'+rolls+' rerolls left</span></div><div class="grid">'+display(family.male,family.condition.includes('father-unknown')||family.condition==='both-unknown')+display(family.female,family.condition.includes('mother-unknown')||family.condition==='both-unknown')+'</div><p class="muted">Estimated household starting funds: $'+familyResources()+' · Mid-parental height reference: '+Math.floor(heightSuggestion()/12)+' ft '+(heightSuggestion()%12)+' in (not a height ceiling).</p><p class="muted">Two profiles are generated independently from 75 male and 75 female profiles. Family circumstances and guardian support vary. None automatically determines behavior or long-term potential.</p><button class="alt" '+(!rolls?'disabled':'')+' onclick="part9Reroll()">Reroll entire family ('+rolls+' left)</button><p class="muted">Rerolling permanently discards the current family. No previous rolls can be recovered.</p>';
 }
 function getCreatorValues(){if(!family)ensureFamily();const result={};for(const k of [...ATHLETIC,...TECHNICAL,...PERSONAL])result[k]=clamp99((allocation[k]||0)+parentBonus(k));return result}
-function creatorStat(k){const bonus=parentBonus(k),n=allocation[k]||0;return '<div class="creator-stat"><div class="line"><label for="cr_'+k+'">'+e(LABELS[k])+'</label><strong id="cv_'+k+'">'+(n+bonus)+'</strong></div><input id="cr_'+k+'" aria-label="'+e(LABELS[k])+'" type="range" min="0" max="'+Math.max(0,Math.min(99-bonus,(200-spent()+pointsCost(n))*3))+'" value="'+n+'" oninput="part9SetStat(\''+k+'\',this.value)"><small class="muted">Allocated '+n+' · Family bonus +'+bonus+'</small></div>'}
+function creatorStat(k){const bonus=parentBonus(k),n=allocation[k]||0;return '<div class="creator-stat"><div class="line"><label for="cr_'+k+'">'+e(LABELS[k])+'</label><strong id="cv_'+k+'">'+(n+bonus)+'</strong></div><input id="cr_'+k+'" aria-label="'+e(LABELS[k])+'" type="range" min="0" max="'+Math.max(0,Math.min(ATHLETIC.includes(k)||TECHNICAL.includes(k)?70:99-bonus,99-bonus,300-spent()+pointsCost(n)))+'" value="'+n+'" oninput="part9SetStat(\''+k+'\',this.value)"><small class="muted">Allocated '+n+' · Family bonus +'+bonus+'</small></div>'}
 function creatorForm(){ensureFamily();const pos=creatorPosition,keys=CORE_BY_POSITION[POSITION_FAMILIES[pos]]||CORE_BY_POSITION.RB;const secondary=TECHNICAL.filter(k=>!keys.includes(k));const v=getCreatorValues();
  const heightFeet=Math.floor(creatorDetails.height/12),heightInches=creatorDetails.height%12;
  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.5 · Part 9 Registration</span></div><div class="signup-masthead"><h1>Create your freshman</h1><p>Player · Family · Attributes</p></div>'+
  '<section class="panel"><h2>01 · Student information</h2><label>Full name<input id="name" maxlength="30" value="'+e(creatorDetails.name)+'"></label><div class="signup-grid"><label>Hometown<input id="hometown" maxlength="48" value="'+e(creatorDetails.hometown)+'"></label><label>Jersey number<input id="jersey" type="number" min="0" max="99" value="'+creatorDetails.jersey+'"></label></div><div class="signup-grid"><label>Primary position<select id="position" onchange="part9ChangePosition(this.value)">'+Object.keys(GROUPS).map(p=>'<option '+(p===pos?'selected':'')+'>'+p+'</option>').join('')+'</select></label><label>Hand<select id="hand"><option '+(creatorDetails.hand==='Right'?'selected':'')+'>Right</option><option '+(creatorDetails.hand==='Left'?'selected':'')+'>Left</option></select></label></div><div class="signup-grid"><div><label>Height</label><div class="height-inputs"><label>Feet<select id="heightFeet">'+[4,5,6].map(f=>'<option value="'+f+'" '+(heightFeet===f?'selected':'')+'>'+f+'</option>').join('')+'</select></label><label>Inches<select id="heightInches">'+Array.from({length:12},(_,i)=>'<option '+(heightInches===i?'selected':'')+'>'+i+'</option>').join('')+'</select></label></div></div><label>Weight (lb)<input id="weight" type="number" min="100" max="450" value="'+creatorDetails.weight+'"></label></div></section>'+
  '<section class="panel"><h2>02 · Family roll</h2>'+creatorFamilyHtml()+'</section><section class="panel"><h2>03 · School selection</h2><label>Family background <select id="bg">'+BG.map(x=>'<option value="'+x[0]+'" '+(x[0]===creatorDetails.bg?'selected':'')+'>'+e(x[1])+'</option>').join('')+'</select></label>'+schoolChoiceRow()+'</section>'+
- '<section class="panel"><h2>04 · Attribute allocation</h2><div class="line"><strong>Shared creation budget</strong><strong id="spent">'+spent()+' / 200</strong></div><div class="meter signup-budget"><i style="width:'+(spent()/2)+'%"></i></div><p id="remaining-points" class="muted">'+(200-spent())+' points remaining · All allocations start at 0. Family bonuses cost nothing.</p><p class="muted">Each point purchases up to 3 rating points (rounded up per attribute). Rating 0–99. Technical skills not selected for your position remain available for multiposition development. Position rating uses the existing gameplay engine until the planned weighted-attribute simulation migration.</p><h3>Athletic · Universal</h3><div class="creator-stats-grid">'+ATHLETIC.map(creatorStat).join('')+'</div><h3>Technical · '+e(pos)+' priority</h3><div class="creator-stats-grid">'+keys.map(creatorStat).join('')+'</div><details><summary>Other technical skills ('+secondary.length+')</summary><div class="creator-stats-grid">'+secondary.map(creatorStat).join('')+'</div></details><h3>Personal</h3><div class="creator-stats-grid">'+PERSONAL.map(creatorStat).join('')+'</div><p class="muted">Behavior response windows: 0–24 → 0/1/2, 25–49 → 1/2/3, 50–74 → 2/3/4, 75–99 → 3/4/5.</p></section>'+
+ '<section class="panel"><h2>04 · Attribute allocation</h2><div class="line"><strong>Shared creation budget</strong><strong id="spent">'+spent()+' / 300</strong></div><div class="meter signup-budget"><i style="width:'+(spent()/3)+'%"></i></div><p id="remaining-points" class="muted">'+(300-spent())+' points remaining · All allocations start at 0. Family bonuses cost nothing.</p><p class="muted">Every creation point buys 1 attribute point. Athletic and Technical manual allocations cap at 70; family bonuses apply separately. Final ratings cap at 99. Technical skills not selected for your position remain available for multiposition development. Position OVR uses position-specific Athletic and Technical weights; detailed play simulation remains separate.</p><h3>Athletic · Universal</h3><div class="creator-stats-grid">'+ATHLETIC.map(creatorStat).join('')+'</div><h3>Technical · '+e(pos)+' priority</h3><div class="creator-stats-grid">'+keys.map(creatorStat).join('')+'</div><details><summary>Other technical skills ('+secondary.length+')</summary><div class="creator-stats-grid">'+secondary.map(creatorStat).join('')+'</div></details><h3>Personal</h3><div class="creator-stats-grid">'+PERSONAL.map(creatorStat).join('')+'</div></section>'+
  '<section class="panel"><button onclick="part9Start()">Submit registration & begin career</button></section>';
 }
 function snapshotCreator(){const byId=id=>document.getElementById(id);if(!byId('name'))return;creatorDetails={name:byId('name').value,school:Number(byId('school')?.value||0),bg:byId('bg').value,height:Number(byId('heightFeet').value)*12+Number(byId('heightInches').value),weight:Number(byId('weight').value),hometown:byId('hometown').value,jersey:Number(byId('jersey').value),hand:byId('hand').value}}
-function setStat(k,n){n=clamp99(n);const allowed=Math.max(0,200-spent()+pointsCost(allocation[k]||0));allocation[k]=Math.min(n,allowed*3,99-parentBonus(k));render()}
-function startCareer(){snapshotCreator();if(spent()>200){alert('You exceeded the 200-point budget.');return}const v=getCreatorValues(),s=creatorDetails;
+function setStat(k,n){n=clamp99(n);const allowed=Math.max(0,300-spent()+pointsCost(allocation[k]||0));allocation[k]=Math.min(n,allowed,99-parentBonus(k),ATHLETIC.includes(k)||TECHNICAL.includes(k)?70:99);render()}
+function startCareer(){snapshotCreator();if(spent()>300){alert('You exceeded the 300-point budget.');return}const v=getCreatorValues(),s=creatorDetails;
  if(s.height<58||s.height>80){alert('Choose a height between 4 ft 10 in and 6 ft 8 in.');return}
  if(!Number.isInteger(s.jersey)||s.jersey<0||s.jersey>99){alert('Choose a jersey from 0 to 99.');return}
  if(!Number.isFinite(s.weight)||s.weight<100||s.weight>450){alert('Choose a valid weight from 100–450 pounds.');return}
@@ -59,7 +59,7 @@ function startCareer(){snapshotCreator();if(spent()>200){alert('You exceeded the
  const attrs={};const map={speed:'speed',accel:'accel',agility:'agility',elusiveness:'elusiveness',vision:'vision',carrying:'carrying',catching:'catching',routes:'routes',release:'release',power:'strength',endurance:'stamina',accuracy:'shortAccuracy',arm:'throwPower',awareness:'decisionMaking',blocking:'runBlocking'};
  for(const k of ATTRS)attrs[k]=v[map[k]||k]||0;
  const school=schools[s.school]||schools[0];const bg=BG.find(x=>x[0]===s.bg)||BG[0];
- game={version:5,name:s.name.trim().slice(0,30)||'Jordan Carter',pos:creatorPosition,bg:s.bg,school,schools,hometown:s.hometown.trim().slice(0,48),jersey:s.jersey,hand:s.hand,grade:9,phase:0,week:1,day:0,year:1,attrs,progress:Object.fromEntries(ATTRS.map(k=>[k,0])),iq:v.academics,behavior:v.behavior,socialSkills:v.socialSkills,athleticAttributes:Object.fromEntries(ATHLETIC.map(k=>[k,v[k]])),technicalAttributes:Object.fromEntries(TECHNICAL.map(k=>[k,v[k]])),physicalBenchmarks:true,creationAllocation:{...allocation},family:JSON.parse(JSON.stringify(family)),familyRerollsUsed:5-rolls,height:s.height,weight:s.weight,physicalType:pick(['early','average','late']),money:familyResources(),familyExpect:bg[3],morale:72,stress:12,fatigue:3,endurance:v.stamina,gpa:3,grades:3,coachTrust:45,relationship:50,team:createRoster(school,creatorPosition),squadPreference:'Auto',dualSquad:false,placement:null,alumni:[],seasonHistory:[],nextNpcId:1000,squadRecords:emptySquadRecords(),programRecord:[0,0],schedule:[],plan:{training:7,study:6,work:0,social:4,recovery:6},focus:Object.fromEntries(GROUPS[creatorPosition].map(g=>[g[0],0])),teamIntensity:2,extraIntensity:2,job:null,injury:null,gamePending:false,scheduledEvent:null,record:[0,0],games:[],history:[],eventLog:[],yearWeeks:0,saveBackups:[],eventCount:0,exposure:{score:0,tier:'Unknown'},socialMedia:{followers:0,posts:0,engagement:0}};
+ game={version:5,name:s.name.trim().slice(0,30)||'Jordan Carter',pos:creatorPosition,bg:s.bg,school,schools,hometown:s.hometown.trim().slice(0,48),jersey:s.jersey,hand:s.hand,grade:9,phase:0,week:1,day:0,year:1,attrs,progress:Object.fromEntries(ATTRS.map(k=>[k,0])),iq:v.academics,behavior:v.behavior,socialSkills:v.socialSkills,athleticAttributes:Object.fromEntries(ATHLETIC.map(k=>[k,v[k]])),technicalAttributes:Object.fromEntries(TECHNICAL.map(k=>[k,v[k]])),physicalBenchmarks:false,creationAllocation:{...allocation},family:JSON.parse(JSON.stringify(family)),familyRerollsUsed:5-rolls,height:s.height,weight:s.weight,physicalType:pick(['early','average','late']),money:familyResources(),familyExpect:bg[3],morale:72,stress:12,fatigue:3,endurance:v.stamina,gpa:3,grades:3,coachTrust:45,relationship:50,team:createRoster(school,creatorPosition),squadPreference:'Auto',dualSquad:false,placement:null,alumni:[],seasonHistory:[],nextNpcId:1000,squadRecords:emptySquadRecords(),programRecord:[0,0],schedule:[],plan:{training:7,study:6,work:0,social:4,recovery:6},focus:Object.fromEntries(GROUPS[creatorPosition].map(g=>[g[0],0])),teamIntensity:2,extraIntensity:2,job:null,injury:null,gamePending:false,scheduledEvent:null,record:[0,0],games:[],history:[],eventLog:[],yearWeeks:0,saveBackups:[],eventCount:0,exposure:{score:0,tier:'Unknown'},socialMedia:{followers:0,posts:0,engagement:0}};
  for(const [i,g] of GROUPS[creatorPosition].entries())if(i<3)game.focus[g[0]]=[3,2,2][i];
  game.schedule=createSchedule();academicState();socialState();healthState();summerState();profileState();profileMilestone('registration','Registration accepted','Signed football registration at '+school.name+'.',{snapshot:true});note('Freshman year begins at '+school.name+'.');persist();tab='home';render();
 }
@@ -118,21 +118,50 @@ function normalizeEvent(){
  ev.part9Choices=true;ev.responseQuality=[q0,q0+1,q0+2];ev.sourceChoices=(ev.choices||[]).slice();
  ev.choices=ev.responseQuality.map(q=>[labels[q],q<=1?'The situation becomes worse.':q===2?'Your response was careless.':q===3?'You avoid making the situation worse.':q===4?'You act responsibly.':'You demonstrate maturity and leadership.',q-3,q]);
 }
+window.part9NewCareer=()=>{
+ if(!confirm('Start a new career? This deletes this v0.5 save on this device. Export your career first if you want a backup.'))return;
+ localStorage.removeItem(KEY);game=null;family=null;rolls=5;allocation={};creatorDetails={name:'Jordan Carter',school:0,bg:'working',height:69,weight:155,hometown:'',jersey:7,hand:'Right'};
+ render();
+};
 function injectNavigation(){if(!game)return;const host=document.getElementById('app');const bottom=host.querySelector('.shell-bottom');if(!bottom)return;
  const stage=game.stage||'highschool';const items=[['home','Home','⌂'],['profile','Player','♙'],['team','Team','♜'],['develop','Development','↗'],['life','Life','♥'],['recruiting','Recruiting','★']];
  bottom.replaceChildren();for(const [id,label,icon] of items){const b=document.createElement('button');b.className='shell-nav-button'+(tab===id?' selected':'');b.type='button';b.innerHTML='<span class="shell-icon">'+icon+'</span><span>'+label+'</span>';b.addEventListener('click',()=>{plannerOpen=false;tab=id;render()});bottom.appendChild(b)}
  const scroller=host.querySelector('.shell-scroll');if(!scroller)return;const extras=host.querySelector('.shell-section-tabs');if(extras)extras.style.display=tab==='home'?'none':'';
  if(tab==='home')injectHome(scroller,stage);
  if(tab==='life')injectLife(scroller,stage);
- if(tab==='recruiting')injectExposure(scroller,stage);
+ if(tab==='recruiting'){injectExposure(scroller,stage);injectDevelopment(scroller);}
  if(tab==='profile')injectProfile(scroller);
- if(tab==='team')injectCoachUsage(scroller);
- if(tab==='develop')injectDevelopment(scroller);
+ // Team retains its existing depth chart; repeated archetype cards removed.
+ // Development contains actionable training only; tested benchmarks live in Recruiting.
  const head=host.querySelector('.shell-header');
+ if(head&&!head.querySelector('.part9-archetype')){const who=head.querySelector('.shell-player-name');if(who){const label=document.createElement('span');label.className='part9-archetype';label.textContent=playerArchetype();who.appendChild(label)}}
+ if(head&&!head.querySelector('.part9-save-tools')){const tools=document.createElement('div');tools.className='part9-save-tools';tools.innerHTML='<button class="alt" type="button" onclick="exportSave()">Export</button><button class="alt" type="button" onclick="part9NewCareer()">New Career</button>';head.appendChild(tools)}
  if(head&&!head.querySelector('.part9-header-context')){const context=document.createElement('div');context.className='part9-header-context';const name=stage==='college'||stage==='collegeComplete'?collegeState().program.name:game.school?.name||'—';const record=stage==='college'?collegeState().record||[0,0]:currentRecord();context.textContent=name+' · '+Math.floor(game.height/12)+' ft '+(game.height%12)+' in · '+game.weight+' lb · '+game.hand+' · '+record.join('–');head.appendChild(context)}
 }
 
+function playerArchetype(){
+ const t=game.technicalAttributes||{},a=game.athleticAttributes||{};
+ if(['RB','FB'].includes(game.pos))return (t.elusiveness||0)>=(t.breakTackle||0)?'Elusive Back':'Power Back';
+ if(game.pos==='QB')return (a.speed||0)>(t.shortAccuracy||0)?'Mobile QB':'Pocket QB';
+ if(['WR','TE'].includes(game.pos))return (a.speed||0)>(t.catching||0)?'Deep Threat':'Possession Target';
+ return 'Developing '+game.pos;
+}
 function panelElement(title,html){const sec=document.createElement('section');sec.className='panel part9-panel';sec.innerHTML='<h2>'+title+'</h2>'+html;return sec}
+window.part9SimSeason=()=>{
+ if(!game||game.stage==='recruiting'||game.finished)return;
+ const phase=game.phase,year=game.year,phaseName=PHASES[phase]?.name||'this phase';
+ if(!confirm('Simulate to the end of '+phaseName+'? Important decisions will pause the simulation.'))return;
+ let steps=0,stopped=false;
+ while(game&&game.year===year&&game.phase===phase&&steps++<100){
+   if(game.scheduledEvent){stopped=true;break;}
+   const before=game.phase+':'+game.week+':'+game.games?.length+':'+game.gamePending;
+   if(game.gamePending)simulateGame();else nextWeek();
+   if(game?.scheduledEvent){stopped=true;break;}
+   if(game&&before===game.phase+':'+game.week+':'+game.games?.length+':'+game.gamePending){stopped=true;break;}
+ }
+ feedback=stopped?'Season simulation paused for an important decision or progression blocker.':'Simulation complete: '+phaseName+'.';
+ persist();render();
+};
 function injectHome(scroller,stage){
  const last=game.games?.[0],match=stage==='college'?null:currentMatchup();
  const team=stage==='college'?collegeState().program.name:game.school.name;
@@ -152,7 +181,7 @@ function injectHome(scroller,stage){
    const continueButton=document.createElement('button');continueButton.textContent='Open college football & advance';continueButton.onclick=()=>{tab='college';render()};scroller.appendChild(continueButton);return;
  }
  if(game.scheduledEvent){const ev=game.scheduledEvent;scroller.appendChild(panelElement('Important decision','<h3>'+e(ev.title)+'</h3><p>'+e(ev.body)+'</p>'+ev.choices.map((c,i)=>'<button class="choice" onclick="chooseEvent('+i+')">'+e(c[0])+'</button>').join('')))}
- const advance=document.createElement('button');advance.textContent=game.gamePending?'Simulate this game':'Advance toward next game';advance.disabled=Boolean(game.scheduledEvent)||allHours()>hoursCap();advance.onclick=()=>{if(game.gamePending)simulateGame();else nextWeek()};scroller.appendChild(advance);
+ const advance=document.createElement('button');advance.textContent=game.gamePending?'Simulate this game':'Advance toward next game';advance.disabled=Boolean(game.scheduledEvent)||allHours()>hoursCap();advance.onclick=()=>{if(game.gamePending)simulateGame();else nextWeek()};scroller.appendChild(advance);const sim=document.createElement('button');sim.className='alt';sim.textContent='Sim Season';sim.disabled=Boolean(game.scheduledEvent);sim.onclick=window.part9SimSeason;scroller.appendChild(sim);
 }
 function showDialog(title,body){const existing=document.querySelector('.part9-dialog');if(existing)existing.remove();const shade=document.createElement('div');shade.className='part9-dialog';shade.innerHTML='<div class="part9-dialog-box" role="dialog" aria-modal="true"><div class="line"><h2>'+e(title)+'</h2><button class="alt" onclick="part9CloseDialog()">Close</button></div>'+body+'</div>';document.body.appendChild(shade)}
 window.part9CloseDialog=()=>document.querySelector('.part9-dialog')?.remove();
@@ -162,22 +191,39 @@ window.part9Expand=()=>{plannerOpen=true;render()};window.part9Done=()=>{planner
 window.part9Plan=(k,v)=>{if(game.stage==='college'){if(typeof collegeSetPlan==='function')collegeSetPlan(k,v);else collegeState().weeklyPlan[k]=Number(v)}else if(typeof alloc==='function')alloc(k,Number(v));else game.plan[k]=Number(v);render()};
 function injectLife(scroller,stage){
  const oldSections=[...scroller.querySelectorAll(':scope > section.panel')];
- const personal=panelElement('Personal · Behavior & social life', '<div class="line"><span>Behavior</span><strong>'+(game.behavior||0)+'/99</strong></div><p>Event responses available: '+[0,1,2].map(n=>n+qualityWindow(game.behavior||0)).join(' · ')+'</p><div class="line"><span>Social skills</span><strong>'+(game.socialSkills||0)+'</strong></div><h3>Support & personal development</h3><div class="buttons"><button class="alt" onclick="part9Support(\'counsel\')">Counseling · free</button><button class="alt" onclick="part9Support(\'mentor\')">Mentorship · free</button><button class="alt" onclick="part9Support(\'volunteer\')">Volunteer · free</button><button class="alt" onclick="part9Support(\'repair\')">Make amends · free</button><button class="alt" onclick="part9Support(\'therapy\')">Private support · $120</button></div><h3>Social media</h3><p>'+(game.socialMedia?.followers||0)+' followers · '+(game.socialMedia?.posts||0)+' posts</p><button class="alt" onclick="part9Post()">Share an update</button>');
+ const personal=panelElement('Personal · Behavior & social life', '<div class="line"><span>Behavior</span><strong>'+(game.behavior||0)+'/99</strong></div><div class="line"><span>Social skills</span><strong>'+(game.socialSkills||0)+'</strong></div><h3>Support & personal development</h3><div class="buttons"><button class="alt" onclick="part9Support(\'counsel\')">Counseling · free</button><button class="alt" onclick="part9Support(\'mentor\')">Mentorship · free</button><button class="alt" onclick="part9Support(\'volunteer\')">Volunteer · free</button><button class="alt" onclick="part9Support(\'repair\')">Make amends · free</button><button class="alt" onclick="part9Support(\'therapy\')">Private support · $120</button></div><h3>Social media</h3><p>'+(game.socialMedia?.followers||0)+' followers · '+(game.socialMedia?.posts||0)+' posts</p><button class="alt" onclick="part9Post()">Share an update</button>');
  const switcher=document.createElement('div');switcher.className='part9-life-tabs';
  const names=[stage==='college'?'Academics':'Academics','Finances','Personal'];
  for(const n of names){const b=document.createElement('button');b.type='button';b.className=n===lifeTab?'active':'alt';b.textContent=n;b.onclick=()=>{lifeTab=n;render()};switcher.appendChild(b)}
+ if(lifeTab==='Academics'&&game.stage!=='college'){
+ const a=academicState(),now=COURSES.reduce((v,k)=>v+(a.courses[k]||0),0)/COURSES.length;
+ const prior=a.weekReports?.[Math.min(2,(a.weekReports?.length||1)-1)];
+ const was=prior?COURSES.reduce((v,k)=>v+(prior.courses[k]||0),0)/COURSES.length:now;
+ const delta=now-was,arrow=delta>2?'↑':delta>.3?'↗':delta< -2?'↓':delta< -.3?'↘':'→';
+ const trend=delta>.3?'Improving':delta<-.3?'Declining':'Stable';
+ scroller.prepend(panelElement('Academic trend','<div class="line"><strong>Recorded GPA '+Number(game.gpa||0).toFixed(2)+'</strong><strong class="gpa-trend">'+arrow+' '+trend+'</strong></div><small>Course performance trend; official GPA updates at term end.</small>'));
+ }
  scroller.prepend(personal);scroller.prepend(switcher);
  for(const section of oldSections){const h=section.querySelector(':scope > h2')?.textContent?.toLowerCase()||'';let category=/academ|course|gpa|school|eligib|grade|major|tutor|study/.test(h)?'Academics':/money|job|work|finance|store|econom|purchas|income|expense|nil|scholar|tuition|ledger/.test(h)?'Finances':'Personal';section.classList.toggle('subtab-hidden',category!==lifeTab)}
  personal.classList.toggle('subtab-hidden',lifeTab!=='Personal');
  const extras=document.getElementById('app').querySelector('.shell-section-tabs');if(extras)extras.style.display='none';
 }
 function injectExposure(scroller,stage){const x=game.exposure||{score:0,tier:'Unknown'},items=stage==='college'?'Pro days, scouting visits and Combine invitations are grouped here.':'7-on-7, summer camps, showcases and scout visits belong under Exposure.';
- const panel=panelElement('Exposure', '<div class="line"><strong>'+e(x.tier)+'</strong><strong>'+x.score+'/100</strong></div><div class="meter"><i style="width:'+x.score+'%"></i></div><p>'+e(items)+'</p><p class="muted">Exposure can grow through football, academic recognition, community events and social media. National recognition does not guarantee football recruiting interest. Worldwide exposure is gated by extraordinary achievements and social reach.</p>');scroller.prepend(panel)}
+ const panel=panelElement('Exposure', '<div class="line"><strong>'+e(x.tier)+'</strong><strong>'+x.score+'/100</strong></div><div class="meter"><i style="width:'+x.score+'%"></i></div><details class="inline-help"><summary aria-label="What is exposure?">?</summary><p>'+e(items)+'</p><p>Exposure can grow through football, academic recognition, community events and social media. National recognition does not guarantee recruiting interest.</p></details>');scroller.prepend(panel)}
 function injectProfile(scroller){const v=game.athleticAttributes,t=game.technicalAttributes;if(!v||!t)return;const make=(keys,data)=>'<div class="grid">'+keys.map(k=>'<div class="tile"><small>'+e(LABELS[k])+'</small><strong>'+clamp99(data[k])+'</strong></div>').join('')+'</div>';
  scroller.prepend(panelElement('Athletic attributes',make(ATHLETIC,v)));scroller.prepend(panelElement('Technical attributes',make(TECHNICAL,t)));scroller.prepend(panelElement('Personal attributes',make(PERSONAL,{behavior:game.behavior,academics:game.iq,socialSkills:game.socialSkills}))) }
 function injectCoachUsage(scroller){const scheme=(game.stage==='college'?collegeState().program:game.school)?.scheme||'Balanced';const fam=POSITION_FAMILIES[game.pos]||'RB';const strengths=(CORE_BY_POSITION[fam]||CORE_BY_POSITION.RB).map(k=>[k,game.technicalAttributes?.[k]||0]).sort((a,b)=>b[1]-a[1]).slice(0,3);const usage=game.technicalAttributes?'<p>Coach philosophy: '+e(scheme)+'</p><p>Player strengths: '+strengths.map(([k,v])=>e(LABELS[k])+' '+v).join(' · ')+'</p><p class="muted">This report describes your skill fit. Position-specific snap allocation is still being integrated into the game simulator.</p>':'<p>Current usage follows the existing position and team scheme.</p>';scroller.prepend(panelElement('Coach · Archetype Usage',usage))}
-function injectDevelopment(scroller){const b=game.athleticAttributes;if(!b)return;const arr=[['Speed','40-yard estimate',b.speed],['Acceleration','10-yard estimate',b.accel],['Agility','3-cone estimate',b.agility],['Strength','Estimated bench press',b.strength],['Jumping','Vertical jump',b.jumping]];const value=(k,v)=>{const points={Speed:[[0,7],[40,5.3],[50,5],[60,4.8],[70,4.63],[80,4.47],[90,4.32],[99,4.21]],Acceleration:[[0,2.6],[50,1.82],[99,1.4]],Agility:[[0,11],[50,7.9],[99,6.28]],Strength:[[0,45],[50,200],[99,500]],Jumping:[[0,4],[50,24],[99,46]]}[k];for(let i=1;i<points.length;i++){if(v<=points[i][0]){const a=points[i-1],b=points[i];return a[1]+(v-a[0])/(b[0]-a[0])*(b[1]-a[1])}}return points[points.length-1][1]};
- const html=arr.map(([label,metric,n])=>'<div class="line"><span>'+label+' · '+metric+'</span><strong>'+value(label,n).toFixed(label==='Strength'?0:2)+(label==='Strength'?' lb':label==='Jumping'?' in':' sec')+'</strong></div>').join('')+'<p class="muted">Provisional universal athletic benchmarks. Position-specific NFL expectations differ; 50 Speed ≈ 5.00-second 40. Strength is absolute, and physical wear is distinct from Stamina.</p>';scroller.prepend(panelElement('Physical benchmarks',html));}
+function injectDevelopment(scroller){
+ const reports=game.summer?.camps?.filter(x=>x.measurements)||[];
+ if(!reports.length){scroller.appendChild(panelElement('Verified physical benchmarks','<p class="muted">No verified test results yet. Attend a combine to record your 40-yard dash, shuttle and vertical jump.</p>'));return;}
+ const latest=reports[0],m=latest.measurements;
+ const html='<div class="line"><span>40-yard dash</span><strong>'+e(m.forty)+' sec</strong></div>'+
+ '<div class="line"><span>Shuttle</span><strong>'+e(m.shuttle)+' sec</strong></div>'+
+ '<div class="line"><span>Vertical jump</span><strong>'+e(m.vertical)+' in</strong></div>'+
+ '<small>Tested Year '+e(latest.year)+' · '+e(latest.name)+'</small>';
+ scroller.appendChild(panelElement('Verified physical benchmarks',html));
+}
+
 const oldSetup=setupScreen;
 setupScreen=creatorForm;
 render=function(){if(!game){const el=document.getElementById('app');el.innerHTML=creatorForm();return}normalizeEvent();oldRender();injectNavigation()};
