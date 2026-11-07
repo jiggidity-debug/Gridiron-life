@@ -1,3 +1,7 @@
+# Gridiron Life v0.591 — Patch Release
+
+Version convention: 5 = major release, 9 = minor release, 1 = bug-fix revision. The next bug-fix revision is v0.592. This package contains the Track 1 fixes including the character-creation scroll correction. Save format remains version 5; no save reset is required solely for the label change.
+
 # Gridiron Life — Part 9 Track 1 Patch (November 7, 2026)
 
 This folder is the **full website**, based on the Part 9 full package. Upload all its files to the GitHub Pages deployment branch to use the update; the companion update ZIP contains only changed files.
