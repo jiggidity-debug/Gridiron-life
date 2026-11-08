@@ -85,10 +85,16 @@ function normalizeCreatorAllocation(){
   allocation[k]=Math.max(0,Math.min(pointsCost(allocation[k]||0),allocationHeadroom(k)));
  }
 }
+// Single source of truth for the stat shown in creation, OVR preview, and the saved player.
+// The cap limits what points can buy; inherited/history bonuses are awarded afterward.
+function creatorFinalRating(k){
+ const base=creationBaseline(k);
+ const bought=Math.min(allocationHeadroom(k),pointsCost(allocation[k]||0));
+ return clamp99(base+bought+historyBonus(k)+parentBonus(k));
+}
 function getCreatorValues(){
  if(!family)ensureFamily();const result={};
- for(const k of [...ATHLETIC,...TECHNICAL,...PERSONAL])
-  result[k]=clamp99(creationBaseline(k)+(allocation[k]||0)+historyBonus(k)+parentBonus(k));
+ for(const k of [...ATHLETIC,...TECHNICAL,...PERSONAL])result[k]=creatorFinalRating(k);
  return result;
 }
 function historyCreatorHtml(){const select=(id,val,opts)=>'<label>'+id+'<select onchange="part9History(this.dataset.kind,this.value)" data-kind="'+id+'">'+Object.entries(opts).map(([key,label])=>'<option value="'+key+'" '+(val===key?'selected':'')+'>'+e(Array.isArray(label)?label[0]:label)+'</option>').join('')+'</select></label>';
@@ -100,13 +106,13 @@ function historyCreatorHtml(){const select=(id,val,opts)=>'<label>'+id+'<select 
 function creatorStat(k){
  const bonus=parentBonus(k),base=creationBaseline(k),history=historyBonus(k),n=allocation[k]||0;
  const max=Math.max(0,Math.min(allocationHeadroom(k),300-spent()+pointsCost(n)));
- const value=clamp99(base+n+history+bonus);
+ const value=creatorFinalRating(k);
  const detail=PERSONAL.includes(k)?'Allocated +'+n+' · No baseline or bonus':'Baseline '+base+' · Allocated +'+n+' (pre-bonus '+(base+n)+') · History +'+history+' · Family +'+bonus;
  return '<div class="creator-stat"><div class="line"><label for="cr_'+k+'">'+e(LABELS[k])+'</label><strong id="cv_'+k+'">'+value+'</strong></div><input id="cr_'+k+'" aria-label="'+e(LABELS[k])+'" type="range" min="0" max="'+max+'" value="'+n+'" oninput="part9SetStat(\''+k+'\',this.value)"><small class="muted">'+detail+' · Pre-bonus allocation cap '+creationLimit(k)+'</small></div>';
 }
 function creatorForm(){ensureFamily();normalizeCreatorAllocation();const pos=creatorPosition,keys=CORE_BY_POSITION[POSITION_FAMILIES[pos]]||CORE_BY_POSITION.RB;const secondary=TECHNICAL.filter(k=>!keys.includes(k));const v=getCreatorValues();
  const heightFeet=Math.floor(creatorDetails.height/12),heightInches=creatorDetails.height%12;
- return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.602 · Registration</span></div><div class="signup-masthead"><h1>Create your freshman</h1><p>Player · Family · Attributes</p></div>'+
+ return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.602 · CREATOR-REFAC-2</span></div><div class="signup-masthead"><h1>Create your freshman</h1><p>Player · Family · Attributes</p></div>'+
  '<section class="panel"><h2>01 · Student information</h2><label>Full name<input id="name" maxlength="30" value="'+e(creatorDetails.name)+'"></label><div class="signup-grid"><label>Hometown<input id="hometown" maxlength="48" value="'+e(creatorDetails.hometown)+'"></label><label>Jersey number<input id="jersey" type="number" min="0" max="99" value="'+creatorDetails.jersey+'"></label></div><div class="signup-grid"><label>Primary position<select id="position" onchange="part9ChangePosition(this.value)">'+Object.keys(GROUPS).map(p=>'<option '+(p===pos?'selected':'')+'>'+p+'</option>').join('')+'</select></label><label>Hand<select id="hand"><option '+(creatorDetails.hand==='Right'?'selected':'')+'>Right</option><option '+(creatorDetails.hand==='Left'?'selected':'')+'>Left</option></select></label></div><div class="signup-grid"><div><label>Height</label><div class="height-inputs"><label>Feet<select id="heightFeet">'+[4,5,6].map(f=>'<option value="'+f+'" '+(heightFeet===f?'selected':'')+'>'+f+'</option>').join('')+'</select></label><label>Inches<select id="heightInches">'+Array.from({length:12},(_,i)=>'<option '+(heightInches===i?'selected':'')+'>'+i+'</option>').join('')+'</select></label></div></div><label>Weight (lb)<input id="weight" type="number" min="100" max="450" value="'+creatorDetails.weight+'" onchange="part9WeightChanged()"></label></div></section>'+
  '<section class="panel"><h2>02 · Family roll</h2>'+creatorFamilyHtml()+'</section>'+historyCreatorHtml()+'<section class="panel"><h2>04 · School selection</h2><label>Family background <select id="bg">'+BG.map(x=>'<option value="'+x[0]+'" '+(x[0]===creatorDetails.bg?'selected':'')+'>'+e(x[1])+'</option>').join('')+'</select></label>'+schoolChoiceRow()+'</section>'+
  '<section class="panel"><h2>05 · Attribute allocation</h2><div class="line"><strong>Shared creation budget</strong><strong id="spent">'+spent()+' / 300</strong></div><div class="meter signup-budget"><i style="width:'+(spent()/3)+'%"></i></div><p id="remaining-points" class="muted">'+(300-spent())+' points remaining · Allocations start at 0; history bonuses apply after allocation.</p><p class="muted">Creation points are added to the size/position baseline first; Athletic and Technical allocation stops at 70 before bonuses. Middle-school history and family bonuses apply afterward and can raise the final rating to 99. Personal ratings have no baseline and are determined by allocation (up to 99). Size-based Speed and Strength baseline values are halved (their original size-derived values cap at 45 before halving). Technical skills not selected for your position remain available for multiposition development. Position OVR uses position-specific Athletic and Technical weights; detailed play simulation remains separate.</p><h3>Athletic · Universal</h3><div class="creator-stats-grid">'+ATHLETIC.map(creatorStat).join('')+'</div><h3>Technical · '+e(pos)+' priority</h3><div class="creator-stats-grid">'+keys.map(creatorStat).join('')+'</div><details><summary>Other technical skills ('+secondary.length+')</summary><div class="creator-stats-grid">'+secondary.map(creatorStat).join('')+'</div></details><h3>Personal</h3><div class="creator-stats-grid">'+PERSONAL.map(creatorStat).join('')+'</div></section>'+
@@ -288,6 +294,7 @@ function injectDevelopment(scroller){
 }
 
 const oldSetup=setupScreen;
+window.part9CreatorHtml=creatorForm;
 setupScreen=creatorForm;
 render=function(){if(!game){document.body.classList.remove('game-shell-active');const el=document.getElementById('app');el.innerHTML=creatorForm();return}normalizeEvent();oldRender();injectNavigation()};
 window.GRIDIRON_PART9={PARENTS,ATHLETIC,TECHNICAL,PERSONAL,LABELS,exposureTier,qualityWindow};

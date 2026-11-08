@@ -142,83 +142,12 @@ function creationPositionKeys(pos){
 function creationProjectedOvr(values,pos){
   return rating(values,pos);
 }
-function readCreationAttributes(){
-  const values={};for(const k of [...ATTRS,'iq','behavior'])values[k]=Number(document.getElementById('a_'+k).value);
-  return values;
-}
-function showBudget(changed){
-  // Sliders have a real shared 100-point budget: moving one cannot spend
-  // another slider's points. Players free points by lowering a stat first.
-  const values=readCreationAttributes();
-  if(changed&&changed.id?.startsWith('a_')){
-    const key=changed.id.slice(2),base=key==='iq'||key==='behavior'?50:38;
-    const others={...values,[key]:base};
-    const available=Math.max(0,100-draftCost(others));
-    const maxAllowed=base+available;
-    if(values[key]>maxAllowed){changed.value=String(maxAllowed);values[key]=maxAllowed;}
-  }
-  const cost=draftCost(values),spent=document.getElementById('spent');
-  spent.textContent=cost+' / 100';
-  spent.style.color=cost===100?'#77dfaf':'#f3c771';
-  const remaining=document.getElementById('remaining-points');
-  if(remaining)remaining.textContent=(100-cost)+' points available';
-  const budgetBar=document.querySelector?.('.signup-budget i');if(budgetBar)budgetBar.style.width=cl(cost,0,100)+'%';
-  for(const k of [...ATTRS,'iq','behavior'])document.getElementById('v_'+k).textContent=values[k];
-  const projected=document.getElementById('projected-ovr');
-  if(projected)projected.textContent=creationProjectedOvr(values,draft.position)+' OVR';
-  const fit=document.getElementById('creation-two-way-fit');
-  if(fit)fit.innerHTML=creationFitPreview(values);
-  draft.points=Object.fromEntries(ATTRS.map(k=>[k,values[k]]));
-  draft.intelligence=values.iq;draft.behavior=values.behavior;
-  return cost;
-}
-function setupScreen(){
-  let feet=Math.floor(draft.height/12),inches=draft.height%12;
-  const ftOptions=[4,5,6].map(f=>'<option value="'+f+'"'+(f===feet?' selected':'')+'>'+f+' ft</option>').join('');
-  const inOptions=Array.from({length:12},(_,i)=>'<option value="'+i+'"'+(i===inches?' selected':'')+'>'+i+' in</option>').join('');
-  const jersey=draft.jersey??7,hand=draft.hand||'Right';
-  const identity='<div class="signup-section-head"><span class="signup-section-number">01</span><div><strong>STUDENT INFORMATION</strong><small>Player identification / equipment sizing</small></div></div>'+
-    '<label>Student athlete full name<input id="name" type="text" maxlength="30" autocomplete="off" value="'+e(draft.name)+'" placeholder="First and last name"></label>'+
-    '<div class="signup-grid"><label>Hometown / home area<input id="hometown" type="text" maxlength="48" value="'+e(draft.hometown||'')+'" placeholder="Optional"></label>'+
-    '<label>Preferred jersey number<input id="jersey" type="number" min="0" max="99" value="'+e(jersey)+'"></label></div>'+
-    '<div class="signup-grid"><label>Primary position<select id="position" onchange="setDraftPos(this.value)">'+Object.keys(GROUPS).map(x=>'<option '+(x===draft.position?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'+
-    '<label>Dominant / throwing hand<select id="hand"><option'+(hand==='Right'?' selected':'')+'>Right</option><option'+(hand==='Left'?' selected':'')+'>Left</option></select></label></div>'+
-    '<div class="signup-grid"><div><label>Height</label><div class="height-inputs"><label>Feet<select id="heightFeet" aria-label="Height feet">'+ftOptions+'</select></label><label>Inches<select id="heightInches" aria-label="Height inches">'+inOptions+'</select></label></div><small>Allowed: 4 ft 10 in to 6 ft 8 in</small></div>'+
-    '<label>Weight (lbs)<input type="number" id="weight" min="110" max="280" value="'+draft.weight+'"></label></div>'+
-    '<div class="signup-section-head"><span class="signup-section-number">02</span><div><strong>HOUSEHOLD & SCHOOL</strong><small>Program registration and family context</small></div></div>'+
-    '<label>Family / household background<select id="bg">'+BG.map(x=>'<option value="'+x[0]+'" '+(x[0]===draft.bg?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+
-    schoolChoiceRow();
-  const primaryKeys=creationPositionKeys(draft.position);
-  const secondaryKeys=ATTRS.filter(k=>!primaryKeys.includes(k));
-  const attributeInput=(k)=>{
-    const baseline=k==='iq'||k==='behavior'?50:38;
-    const value=k==='iq'?draft.intelligence:k==='behavior'?draft.behavior:draft.points[k]??38;
-    return '<label class="line"><span>'+e(k==='iq'?'Academic intelligence':k==='behavior'?'Behavior / Coachability':k.replace(/\b\w/g,c=>c.toUpperCase()))+'</span><strong id="v_'+k+'">'+value+'</strong></label>'+
-      (ATTRIBUTE_EXPLAINS[k]?'<small class="muted">'+e(ATTRIBUTE_EXPLAINS[k])+'</small>':'')+ 
-      '<input aria-label="'+e(k)+' creation attribute" type="range" id="a_'+k+'" min="'+(baseline===50?35:28)+'" max="'+(baseline===50?85:70)+'" value="'+value+'" oninput="showBudget(this)">';
-  };
-  const primaryGroups=GROUPS[draft.position].map(group=>
-    '<div class="creation-position-group"><div class="line"><strong>'+e(group[1])+'</strong><small>Counts toward '+e(draft.position)+' OVR</small></div>'+
-    group[2].map(attributeInput).join('')+'</div>').join('');
-  const secondaryInputs=secondaryKeys.map(attributeInput).join('');
-  const generalInputs=['iq','behavior'].map(attributeInput).join('');
-  const attributeInputs='<div class="creation-priority-head"><strong>PRIMARY · '+e(draft.position)+' POSITION ATTRIBUTES</strong><span class="chip" id="projected-ovr">'+creationProjectedOvr({...Object.fromEntries(ATTRS.map(k=>[k,draft.points[k]??38]))},draft.position)+' OVR</span></div>'+
-    '<p class="muted">The current OVR formula averages 10 position-specific ratings equally (10% each). This is an overall <strong>summary</strong>, not a claim that all ten skills matter equally during games. Actual play results also depend on role, opportunities, teammates and opponents.</p>'+
-    primaryGroups+
-    (secondaryKeys.length?'<details class="creation-secondary"><summary>Other athletic attributes ('+secondaryKeys.length+') · do not affect '+e(draft.position)+' OVR directly</summary><p class="muted">These may matter if you change positions or take another role later. All still use your 100-point budget.</p>'+secondaryInputs+'</details>':'')+
-    '<div class="creation-general"><strong>PERSONAL ATTRIBUTES</strong><p class="muted">Academic intelligence and Behavior / Coachability use creation points but are not included in the athletic OVR average.</p>'+generalInputs+'</div>'+
-    '<details class="creation-secondary" open><summary>Two-way football: compare defensive positions</summary><div id="creation-two-way-fit">'+creationFitPreview({...Object.fromEntries(ATTRS.map(k=>[k,draft.points[k]??38]))})+'</div></details>';
-  return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.6 · Registration</span></div>'+
-    '<div class="signup-masthead"><div class="signup-overline">INTERSCHOLASTIC ATHLETICS · INTAKE DOCUMENT</div><h1>Create your freshman</h1><p>High School Football Registration</p><div class="signup-stamp">FORM GL–09 · NEW STUDENT · ACADEMIC YEAR 1</div></div>'+
-    '<section class="panel signup-sheet">'+identity+'</section>'+
-    panel('03 · School profile & program evaluation','<p class="muted">Review the program you are registering for. School choice affects football opportunities and resources.</p><div id="school-profile">'+selectedSchoolStats()+'</div>')+
-    '<section class="panel signup-sheet"><div class="signup-section-head"><span class="signup-section-number">04</span><div><strong>INITIAL ATHLETIC EVALUATION</strong><small>Budget: 100 development points at registration</small></div></div>'+
-      '<div class="line"><strong>Creation points used</strong><strong id="spent">0 / 100</strong></div><div class="meter signup-budget"><i style="width:0"></i></div><p id="remaining-points" class="muted">100 points available</p>'+attributeInputs+
-      '<p class="muted">Each point above the baseline costs one. Lowering below baseline does not create extra points. You can keep developing after registration.</p></section>'+
-    '<section class="panel signup-confirm"><div class="signup-section-head"><span class="signup-section-number">05</span><div><strong>REGISTRATION ACKNOWLEDGMENT</strong><small>Student athlete sign-up</small></div></div>'+
-    '<p>Submitting creates your freshman career at the selected school. A permanent registration record becomes the first entry in your evolving player biography.</p>'+
-    '<button id="start-career" onclick="start()">Submit Registration & Begin Career</button></section>';
-}
+// v0.602: Retired the obsolete 100-point character-creation UI.
+// The canonical creator lives in 74-part9.js. These compatibility names cannot
+// display an outdated form or invoke the historical budget calculation.
+function showBudget(){ return 0; }
+function setupScreen(){ return typeof window.part9CreatorHtml==='function'
+  ? window.part9CreatorHtml() : '<section class="panel">Loading character creation…</section>'; }
 
 function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.6 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
 

@@ -59,3 +59,7 @@ button.v6-btn.v6-action{background:var(--v6-accent);color:#162733}
 .v601-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}
 .v601-tabs button{font-size:10px;padding:7px 2px;border-radius:5px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;cursor:pointer}
 .v601-tabs button.active{background:var(--v6-primary,#487558);color:white}
+
+/* 0.603 global action feedback */
+#v603-action-status{position:fixed;z-index:10000;left:50%;bottom:83px;transform:translateX(-50%) translateY(15px);background:#20384f;color:#fff;padding:12px 18px;border:1px solid #80c8ef;border-radius:12px;max-width:min(90vw,620px);box-shadow:0 8px 30px #0009;font-size:14px;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;}
+#v603-action-status.visible{opacity:1;transform:translateX(-50%) translateY(0)}
