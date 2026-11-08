@@ -1,25 +1,27 @@
-# Gridiron Life v0.5 — Part 9: Life, Creation & HUD (playtest build)
+# Gridiron Life v0.7.1 — Roster-Based Football & Annual Calendars
 
-## Included in this update
+Deploy `index.html`, `js/`, and `css/` together. Save exports still use version 6 as the **save schema**, so prior exported careers remain loadable. Export a backup before testing.
 
-- New freshman registration: 200 shared attribute-creation points across Athletic, Technical, and Personal ratings. Creation points purchase three attribute points apiece in this playtest implementation, so players can create a viable freshman build. Attribute-point pricing remains subject to balancing.
-- 75 generated male and 75 generated female parent templates; randomly combined family, varied occupations, heights, fictional IQ ratings, family circumstances, and modest starting bonuses. Five *complete* rerolls; earlier families cannot be recovered. Some guardians and unavailable/unknown parents are represented.
-- Six-button bottom HUD: Home, Player, Team, Development, Life, Recruiting.
-- Compact Home with opponent/recent-game panels and weekly allocation. Adjust replaces the cards with sliders, and one Done button returns home.
-- Personal systems: behavior score, behavior-sensitive three-response event choices (0–2, 1–3, 2–4, 3–5), school counseling, mentorship, volunteering, and private support.
-- New spending options: personal trainer, gym membership, workout equipment, community events, discretionary entertainment.
-- Social media and an exposure progression (Unknown → Local → Regional → National; Worldwide has an extraordinary-achievement gate).
-- Athletic benchmarks for 40-yard, 10-yard, 3-cone, estimated absolute bench strength and vertical jump. Technical attributes include Press Coverage and shared Catching.
-- Existing high-school and college simulation files are included; some new technical skills and positional schemes are **displayed but not yet wired into every play-resolution mechanic**.
+## Reworked in source (not appended as a late override)
 
-## Current limitations / planned work
+- **No high-school 24-carry cap or 9-target cap.** Both conditional limit statements are completely deleted from `js/61-football.js`, and the old cap-based regression assertions are removed.
+- **Actual program roster.** Existing same-position teammates are retained; missing school positions are modeled as persistent NPCs. The Team screen shows the modeled full roster, derived archetype, overall rating, and current-season game stats. Each game now saves teammates' rushing, receiving, passing, line, and defensive results in `game.games[].rosterStats`. Previous games cannot retroactively generate missing NPC statistics.
+- **Coach-distributed touches.** Coach star reliance, skill, scheme, archetype and player availability affect selection for each run and target. There is no numerical per-player hard cap.
+- **New high-school rushing outcome formula.** Speed, acceleration, agility, elusiveness, power, endurance, vision, carrying, knowledge and matchup run defense contribute; carrying also impacts fumble probability. Other attributes matter through their positional roles.
+- **Calendar cycles.** High school now totals 52 weeks (existing phases with a 13-week summer); college accounts for 12 regular-season weeks plus any postseason and the remainder of the 52-week year as playable offseason; NFL accounts for four camp weeks, games/playoffs, and the remainder as playable offseason. College periods distinguish winter development, spring practices, summer training and fall camp. NFL periods distinguish winter recovery, free agency/draft, organized activities and camp preparation. Expired contracts open free-agency offers during the NFL offseason (week 8), not only after it. The NFL rookie draft remains the existing college-to-pro entry process; continuing NFL seasons also include a draft news event.
+- **Existing health, development, recruiting, history, and biography systems are preserved.**
 
-- **Playtest update, not the final full simulation overhaul.** The underlying match engine largely uses the previous attributes, although new attribute groups are saved and some skills map onto the legacy model. Draft logic, technical interactions, position-specific coach usage, college offseason, and fully integrated spending/time effects still need balancing and further work.
-- Opponent season averages are **not yet tracked reliably**. The opponent button shows recorded scouting estimates and says so, rather than inventing season averages.
-- 75+75 parents are procedurally derived from templates. They are varied profiles, not 150 hand-authored biographies.
-- This update is designed primarily for starting a **new character**. Existing saves should be backed up first; new creation values are not retroactively assigned to existing characters.
-- World-wide exposure may remain unavailable in ordinary playthroughs pending deeper awards/draft integrations.
+## Important limitations
 
-## Installing on GitHub Pages
+- The full on-field coaching allocation, persistent game-by-game teammate box scores, and the new running model are implemented for the **high-school match simulator**. College and NFL still use their prior simplified roster/match simulations; this is not yet a complete three-level engine rewrite.
+- The newly modeled other-position players are generated when first required by an imported save and are kept thereafter. Existing games cannot be attributed to NPCs retrospectively.
+- College and NFL calendar periods are playable offseason weeks with existing training and recovery actions; the league-wide offseason is simplified. The NFL draft news item is not a fully simulated draft class.
+- Runtime smoke/regression tests are included, but a complete interactive browser playthrough across three levels has not been performed.
 
-Extract the **full ZIP** and upload its contents (not the ZIP itself) into the root of your GitHub Pages repository, keeping `index.html`, `css/`, and `js/` paths intact. The **update-only ZIP** contains just files changed by Part 9 relative to Part 8.9.3. Back up any existing local browser save before installing.
+## Tests
+
+Run from this folder:
+
+`node tests/v07-stability-test.cjs /path/to/exported-save.json`
+
+`node tests/v071-roster-calendar-test.cjs /path/to/exported-save.json`

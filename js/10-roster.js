@@ -111,7 +111,7 @@ function npcFinishYear(npc,school,initial=false){
 function npcDevelopWeek(school){
  if(!game?.team?.length||game.stage==='college'||game.stage==='nfl')return;
  const phase=PHASES[game.phase],teamHours=phase?.teamHours||0;
- for(const npc of game.team){
+ for(const npc of [...game.team,...ensureProgramRoster()]){
   const d=npc.development||(npc.development={progress:{},weeks:0,extraSessions:0,mandatorySessions:0});
   d.weeks++;
   const traits=npc.personality||(npc.personality=npcPersonality(npc.commitment||'casual'));
@@ -140,6 +140,58 @@ function positionRoomPerGrade(school){
 }
 function createRoster(school,pos){let people=[],n=positionRoomPerGrade(school);for(let grade=9;grade<=12;grade++)for(let i=0;i<n;i++)people.push(newNpc(school,pos,grade,'npc-'+(grade*10+i)));return people}
 
+// The program roster extends the existing position room; old saves retain their
+// original same-position NPCs and receive the missing positions on first use.
+const PROGRAM_POSITION_COUNTS={QB:3,RB:4,FB:2,WR:6,TE:3,LT:2,LG:2,C:2,RG:2,RT:2,DE:4,DT:3,NT:2,OLB:4,ILB:3,MLB:2,CB:5,FS:2,SS:2,K:2,P:2,LS:2};
+function ensureProgramRoster(){
+ if(!game)return [];
+ if(!Array.isArray(game.programRoster)){
+   game.programRoster=[];
+   for(const [pos,count] of Object.entries(PROGRAM_POSITION_COUNTS)){
+     if(pos===game.pos)continue;
+     for(let i=0;i<count;i++){
+       const grade=[12,11,10,9][i%4];
+       game.programRoster.push(newNpc(game.school,pos,grade,'program-'+pos+'-'+i));
+     }
+   }
+ }
+ return game.programRoster;
+}
+function programRosterTurnover(){
+ if(!Array.isArray(game.programRoster))return;
+ const leaving=game.programRoster.filter(x=>x.grade>=12);
+ game.alumni.push(...leaving.map(x=>({...x,graduatedAfterYear:game.year,ovr:rating(x.attrs,x.pos)})));
+ game.programRoster=game.programRoster.filter(x=>x.grade<12);
+ for(const x of game.programRoster){npcFinishYear(x,game.school);x.grade++;x.ovr=rating(x.attrs,x.pos);}
+ for(const x of leaving){
+   game.nextNpcId=(game.nextNpcId||1000)+1;
+   game.programRoster.push(newNpc(game.school,x.pos,9,'program-'+game.nextNpcId));
+ }
+}
+function programGameRoster(level){
+ const d=depth(),primary=game.placement?.primary||{};
+ const room=[{id:'you',name:game.name,grade:game.grade,pos:game.pos,attrs:game.attrs,ovr:rating(game.attrs,game.pos)},...game.team,...ensureProgramRoster()];
+ return room.filter(x=>{
+   if(x.id==='you'&&game.injury)return false;
+   if(x.id==='you'||primary[x.id])return (primary[x.id]||d.level)===level;
+   if(level==='Varsity')return x.grade>=11;
+   if(level==='JV')return x.grade===10||x.grade===11;
+   return x.grade===9;
+ }).map(x=>({...x,ovr:rating(x.attrs,x.pos)}));
+}
+function programArchetype(x){
+ const a=x.attrs||{},speed=(a.speed||30)+(a.accel||30)+(a.agility||30),power=(a.power||30)*2+(a.carrying||30);
+ if(['RB','FB'].includes(x.pos))return power>speed?'Power':'Speed';
+ if(['WR','TE'].includes(x.pos))return (a.catching||30)+(a.routes||30)>(a.speed||30)+(a.accel||30)?'Possession':'Vertical';
+ return x.pos;
+}
+function programSeasonLine(id,year=game.year){
+ const out={games:0,carries:0,rushYards:0,rushTD:0,targets:0,receptions:0,recYards:0,recTD:0,passAtt:0,passComp:0,passYards:0,passTD:0,tackles:0,sacks:0,blocks:0,tfl:0};
+ for(const g of game.games||[]){if(g.year!==year)continue;const r=id==='you'?g.stats:g.rosterStats?.[id];if(!r)continue;
+   out.games++;for(const key of Object.keys(out))if(key!=='games')out[key]+=Number(r[key]||0);
+ }
+ return out;
+}
 function initialDraft(){let p={};ATTRS.forEach(k=>p[k]=38);return p}
 
 function makeFreshmen(count=positionRoomPerGrade(game.school)){let added=[];for(let i=0;i<count;i++){game.nextNpcId=(game.nextNpcId||1000)+1;added.push(newNpc(game.school,game.pos,9,'npc-'+game.nextNpcId))}return added}
@@ -151,6 +203,7 @@ function annualRosterTurnover(){
   let staying=game.team.filter(x=>x.grade<12);
   for(let x of staying){npcFinishYear(x,game.school);x.grade++;x.ovr=rating(x.attrs,x.pos)}
   game.team=[...staying,...makeFreshmen(positionRoomPerGrade(game.school))];
+  programRosterTurnover();
   return {graduates:departing.length,entrants:positionRoomPerGrade(game.school),names:departing.map(x=>x.name)};
 }
 

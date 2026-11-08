@@ -55,10 +55,12 @@ function healthWeek(){
   const physicallyStrained=cl((before+peak)/130,0,1.4);
   // Contact, injury and prolonged high fatigue accumulate lasting wear. Training
   // by itself produces little wear; breaks permit partial healing, not a reset.
-  const contactWear=contacts*.021*(1+physicallyStrained*.65)*(1+(100-h.durability)/220);
+  const contactWear=contacts*.015*(1+physicallyStrained*.55)*(1+(100-h.durability)/240);
   const overloadWear=Math.max(0,game.fatigue-65)*.011;
   const injuryWear=game.injury?.severity?game.injury.severity*.025:0;
-  const wearRecovery=game.phase===3?.19:game.phase===1?.11:game.phase===2?.05:game.phase===4?.07:.025;
+  const restHours=cl(Number(game.plan?.recovery||0),0,30);
+  const baseRecovery=game.phase===3?.65:game.phase===1?.42:game.phase===2?.13:game.phase===4?.32:.18;
+  const wearRecovery=baseRecovery+Math.min(restHours,12)*(game.phase===3||game.phase===1?.075:.025);
   h.wear=cl(Math.round((h.wear+contactWear+overloadWear+injuryWear-wearRecovery)*100)/100,0,100);
   let injuryStatus='None',newInjuryWear=0;
   if(game.injury){

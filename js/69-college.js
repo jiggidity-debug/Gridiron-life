@@ -72,8 +72,13 @@ function recruitingState(){
  const varsity=recent.length;
  const impact=recent.length?Math.round(recent.slice(0,14).reduce((n,g)=>n+gameImpact(g),0)/Math.min(14,recent.length)):0;
  const awards=(game.awards?.earned||[]).filter(x=>x.kind!=='weekly').length;
- const exposure=game.summer?.exposure||game.summer?.totalExposure||game.exposure||0;
- const score=cl(Math.round(rating(game.attrs,game.pos)*.82+4+cl(impact/16,-3,5)+Math.min(3,varsity*.12)+Math.min(3,awards*.5)+Math.min(2,Math.sqrt(Math.max(0,exposure))*.15)+(game.school.classif-1)*.25),10,80);
+ const exposureValue=game.exposure&&typeof game.exposure==='object'?Number(game.exposure.score||0):Number(game.exposure||0);
+ const exposure=Math.max(0,Number(game.summer?.exposure||0),Number(game.summer?.totalExposure||0),exposureValue);
+ const seasons=game.seasonHistory||[];
+ const varsityYears=seasons.filter(y=>y.grade>=9&&y.games>=8).length;
+ const productivity=cl((impact-40)/90,0,1);
+ const careerSignal=cl(productivity*16+Math.min(5,varsityYears*1.5)+Math.min(4,awards*.35),0,23);
+ const score=cl(Math.round(rating(game.attrs,game.pos)*.72+5+careerSignal+Math.min(4,varsity*.10)+Math.min(3,Math.sqrt(exposure)*.30)+(game.school.classif-1)*.25),10,80);
  r.scouting=score;
  r.stars=score>=70?5:score>=65?4:score>=60?3:score>=55?2:score>=50?1:0;
  const above=r.board.filter(p=>p.score>score).length;
@@ -87,7 +92,8 @@ function recruitingState(){
    const minimumGPA=({FBS:2.5,FCS:2.3,D2:2.2,D3:2.6,NAIA:2.2,JUCO:1.9})[p.tier];
    // JUCO primarily serves capable athletes needing an academic or recruiting reset;
    // it is not a guaranteed destination for every weak high-school prospect.
-   const qualified=game.grade>=11 && varsity>=4 && ability>=minimumAbility && game.gpa>=minimumGPA;
+   const productionException=varsity>=10&&impact>=240&&score>=60&&['JUCO','NAIA','D2','FCS'].includes(p.tier);
+   const qualified=game.grade>=11&&varsity>=4&&(ability>=minimumAbility||productionException)&&game.gpa>=minimumGPA;
    const offer=qualified&&score>=minimum&&p.tier!=='D3';
    return {id:p.id,offer,scholarship:offer?cl(Math.round(35+(score-minimum)*2.5+(p.resources-50)*.15),35,100):0,interest:cl(Math.round(score-minimum+53),0,100),minimum};
  });
@@ -380,8 +386,8 @@ function collegeAdvancePlayerWeek(result,role){
  const peak=cl(prev+gameLoad+trainLoad+practiceLoad,0,100);
  game.fatigue=cl(Math.round((peak-rest)*10)/10,0,100);
  const beforeWear=h.wear;
- h.wear=cl(Math.round((h.wear+contacts*.025*(1+peak/160)+Math.max(0,game.fatigue-70)*.012-.035)*100)/100,0,100);
- h.weekReports.unshift({year:'College '+c.year,phase:'College season',week:result.week,before:prev,peak,after:game.fatigue,team:+practiceLoad.toFixed(1),extra:+trainLoad.toFixed(1),game:+gameLoad.toFixed(1),field:0,work:0,natural:4.3,dedicated:+(plan.recovery*.72).toFixed(1),wearBefore:beforeWear,wearAfter:h.wear,contacts,injuryStatus:game.injury?.name||'None',contactWear:+(contacts*.025*(1+peak/160)).toFixed(3),overloadWear:+(Math.max(0,game.fatigue-70)*.012).toFixed(3),injuryWear:0,wearRecovery:.035});
+ h.wear=cl(Math.round((h.wear+contacts*.025*(1+peak/160)+Math.max(0,game.fatigue-70)*.012-(.10+Math.min(20,Number(plan.recovery||0))*.025))*100)/100,0,100);
+ h.weekReports.unshift({year:'College '+c.year,phase:'College season',week:result.week,before:prev,peak,after:game.fatigue,team:+practiceLoad.toFixed(1),extra:+trainLoad.toFixed(1),game:+gameLoad.toFixed(1),field:0,work:0,natural:4.3,dedicated:+(plan.recovery*.72).toFixed(1),wearBefore:beforeWear,wearAfter:h.wear,contacts,injuryStatus:game.injury?.name||'None',contactWear:+(contacts*.025*(1+peak/160)).toFixed(3),overloadWear:+(Math.max(0,game.fatigue-70)*.012).toFixed(3),injuryWear:0,wearRecovery:+(.10+Math.min(20,Number(plan.recovery||0))*.025).toFixed(3)});
  h.weekReports=h.weekReports.slice(0,100);
  if(game.injury){game.injury.weeks--;if(game.injury.weeks<=0){game.injury=null;c.history.unshift('College medical staff cleared the previous injury.')}}
  else{
@@ -435,7 +441,7 @@ function collegeScreen(){
  let d=collegeDepth(),m=collegeMatch(),rankings=collegeStandings(),top=rankings.slice(0,10);
  const stats=collegePlayerRecord(),season=c.games.filter(x=>x.year===c.year),last=c.games[0];
  let action=c.phase==='regular'||c.phase==='postseason'?'<div class="story"><h3>'+e(c.phase==='regular'?'Week '+c.week+' · '+m?.name:(c.playoff?.nextMatch?'National '+c.playoff.round:'Winter Bowl'))+'</h3><p>'+e(m?.name||'Opponent pending')+' · '+(m?.conference?'Conference game':'Nonconference/postseason')+'</p><p>Coach evaluates you as '+e(d.role)+' (#'+d.rank+' at '+e(game.pos)+'). '+(c.redshirtChoice?'You are redshirting; no personal snaps this year.':'Your attributes and practice compete against existing players.')+'</p><button onclick="collegeSimGame()">Simulate College Game</button></div>':
- c.phase==='jucoGraduation'?'<div class="story"><h3>JUCO graduation · Four-year recruiting</h3><p>Two junior-college seasons are complete. Choose an eligible four-year transfer destination below to continue your career.</p></div>':c.phase==='offseason'?'<div class="story"><h3>Playable college offseason</h3><p>Year '+c.year+' finished · '+Number(c.offseasonWeeks||0)+'/8 training weeks completed. Adjust training and recovery in College Weekly Plan, then advance one week at a time. Transfer and NIL options remain available.</p><button onclick="v603CollegeOffseasonWeek()" '+(Number(c.offseasonWeeks||0)>=8?'disabled':'')+'>Complete Offseason Week</button><button onclick="collegeNextYear()" '+(Number(c.offseasonWeeks||0)<8?'disabled':'')+'>'+(c.finalCollegeOffseason?'Finish College Career':'Begin Next College Season')+'</button></div>':
+ c.phase==='jucoGraduation'?'<div class="story"><h3>JUCO graduation · Four-year recruiting</h3><p>Two junior-college seasons are complete. Choose an eligible four-year transfer destination below to continue your career.</p></div>':c.phase==='offseason'?'<div class="story"><h3>Playable college offseason</h3><p>Year '+c.year+' finished · '+Number(c.offseasonWeeks||0)+'/'+careerOffseasonWeeks('college')+' training weeks completed. Adjust training and recovery in College Weekly Plan, then advance one week at a time. Transfer and NIL options remain available.</p><button onclick="v603CollegeOffseasonWeek()" '+(Number(c.offseasonWeeks||0)>=careerOffseasonWeeks('college')?'disabled':'')+'>Complete Offseason Week</button><button onclick="collegeNextYear()" '+(Number(c.offseasonWeeks||0)<careerOffseasonWeeks('college')?'disabled':'')+'>'+(c.finalCollegeOffseason?'Finish College Career':'Begin Next College Season')+'</button></div>':
  '<p><strong>College football career complete.</strong> Your college and high school records remain in History.</p>';
  let teamRows=d.room.map((x,i)=>'<tr'+(x.id==='you'?' class="selected-school"':'')+'><td>'+(i+1)+'</td><td>'+e(x.name)+(x.id==='you'?' (YOU)':'')+'</td><td>'+x.classYear+'</td><td>'+x.ovr+'</td></tr>').join('');
  return panel('College football · '+e(c.program.name),'<p>'+e(collegeTier(c.program.tier).label)+' · '+e(c.program.conference)+' conference · '+e(c.program.scheme)+' offense · School year '+c.year+' · '+e(c.phase)+' · Scholarship '+c.scholarship+'%</p><div class="grid">'+[['Record',c.record.join('–')],['Conference',c.conferenceRecord.join('–')],['Depth chart','#'+d.rank+' '+d.role],['Eligibility',c.eligibilityUsed+'/4 seasons used'],['College GPA',c.gpa.toFixed(2)],['NIL earnings','$'+c.nilEarned]].map(x=>'<div class="tile"><small>'+e(x[0])+'</small><div class="num">'+e(x[1])+'</div></div>').join('')+'</div><p>'+e(game.name)+' · '+e(game.pos)+' · '+rating(game.attrs,game.pos)+' OVR. Your high school abilities were preserved; college opponents are stronger.</p>'+action)+

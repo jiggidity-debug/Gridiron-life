@@ -83,6 +83,7 @@ function v6NFLDeclare(){if(!game?.college||!['collegeComplete','college'].includ
 }
 function v6NFLSign(id){const n=v6League(),offer=n.offers.find(o=>o.teamId===Number(id));if(!offer||!['entry','freeAgency','released'].includes(n.status))return;
  const team=n.proTeams.find(x=>x.id===offer.teamId);n.team=team;n.rosterStatus='Camp';n.status='camp';n.phase='camp';n.week=1;n.campPerformance=0;n.salary=offer.yearly;n.contractYears=offer.years;n.tryoutUsed=false;n.offers=[];
+ if(Number(n.offseasonWeeks||0)>=8&&n.year>=1){n.phase='offseason';n.status='offseason';n.rosterStatus='Signed';n.week=n.offseasonWeeks;}
  n.contracts.push({year:n.year,team:team.name,salary:n.salary,years:n.contractYears,type:offer.type});n.history.unshift('Signed with '+team.name+' ('+offer.type+').');n.news.unshift({title:game.name+' joins '+team.name,body:offer.type+' · $'+n.salary.toLocaleString()+' yearly · '+n.contractYears+' year(s).'});game.stage='nfl';persist();render();
 }
 function v6NFLOffers(){const n=v6League(),grade=v6ProRating(),teams=n.proTeams.filter(x=>!n.team||x.id!==n.team.id).map(p=>({teamId:p.id,fit:cl(Math.round(75-Math.abs(grade-p.strength)*.7+R(-9,9)),20,98)})).sort((a,b)=>b.fit-a.fit);
