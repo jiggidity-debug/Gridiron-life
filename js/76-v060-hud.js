@@ -21,7 +21,7 @@ function v6Header(){const n=['nfl','nflEntry'].includes(game.stage)?v6League():n
  // Main fatigue indicator uses the higher fatigue burden; the Develop page shows both.
  const fatigue=Math.round(Math.max(fatiguePhysical,fatigueMental));
  const indicators=[['STRESS',String(Math.round(Number(game.stress||0))),'Stress: higher is worse'],[isPro?'ROLE':'GPA',isPro?(n.rosterStatus==='Practice squad'?'Practice':n.rosterStatus==='Active roster'?(n.positionRank===1?'Starter':'Backup'):'Camp'):Number.isFinite(gpaValue)?gpaValue.toFixed(2):'—',isPro?'NFL roster role':'Academic GPA'],['FATIGUE',String(fatigue),'Higher of physical ('+Math.round(fatiguePhysical)+') and mental ('+Math.round(fatigueMental)+') fatigue'],['MORALE',String(Math.round(Number(game.morale||0))),'Morale: higher is better']];
- return '<header class="v6-header"><div class="v6-brand"><strong>◉ GRIDIRON LIFE <span class="v6-version">v0.601</span></strong><span>'+e(n?'NFL Week '+n.week:game.stage==='college'?'College Week '+c.week:'Week '+game.week)+'</span></div>'+ 
+ return '<header class="v6-header"><div class="v6-brand"><strong>◉ GRIDIRON LIFE <span class="v6-version">v0.602</span></strong><span>'+e(n?'NFL Week '+n.week:game.stage==='college'?'College Week '+c.week:'Week '+game.week)+'</span></div>'+ 
  '<div class="v6-head3"><div><strong>'+e(game.name)+'</strong><small>#'+e(game.jersey??24)+' · '+e(pos)+'</small><em>'+e(quality)+'</em></div><div><strong>'+e(v6TeamName())+'</strong><small>'+e(level)+'</small><em>'+e(spot)+'</em></div><div class="v6-ovr"><b>'+rating(game.attrs,game.pos)+'</b><small>OVERALL</small></div></div>'+ 
  '<div class="v6-quick">'+indicators.map(x=>'<span title="'+e(x[2])+'"><small>'+e(x[0])+'</small><b>'+e(x[1])+'</b></span>').join('')+'</div></header>';
 }

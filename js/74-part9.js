@@ -26,7 +26,7 @@ function chooseCondition(){const n=Math.random();if(n<.48)return 'together';if(n
 let middleHistory={experience:'school',sports:'none',former:'none'};
 let family=null,rolls=5,allocation={},creatorPosition='RB',creatorDetails={name:'Jordan Carter',school:0,bg:'working',height:69,weight:155,hometown:'',jersey:7,hand:'Right'};
 const clamp99=v=>Math.max(0,Math.min(99,Math.round(Number(v)||0)));
-function parentBonus(k){if(!family)return 0;const a=family.male,b=family.female;const physical=ATHLETIC.includes(k);const academic=k==='academics';const social=k==='socialSkills';const behavior=k==='behavior';const relevant=physical?Math.round((a.athletic+b.athletic)/2):academic?Math.round((a.academics+b.academics)/2):social?Math.round((a.socialSkills+b.socialSkills)/2):behavior?Math.round((a.behavior+b.behavior)/2):Math.round((a.athletic+b.athletic)/2);
+function parentBonus(k){if(PERSONAL.includes(k)||!family)return 0;const a=family.male,b=family.female;const physical=ATHLETIC.includes(k);const academic=k==='academics';const social=k==='socialSkills';const behavior=k==='behavior';const relevant=physical?Math.round((a.athletic+b.athletic)/2):academic?Math.round((a.academics+b.academics)/2):social?Math.round((a.socialSkills+b.socialSkills)/2):behavior?Math.round((a.behavior+b.behavior)/2):Math.round((a.athletic+b.athletic)/2);
   const sportLink=TECHNICAL.includes(k)&&(a.formerAthlete||b.formerAthlete);
   // Bonuses are modest and deliberately do not predict IQ or a child's entire personality.
   return physical?Math.max(0,Math.floor((relevant-45)/9)):sportLink?3+(relevant>60?2:0):academic||social||behavior?Math.max(0,Math.floor((relevant-50)/14)):0;
@@ -46,15 +46,27 @@ const HISTORY_EXPERIENCE={none:['New to football',0],recreation:['Recreational /
 const HISTORY_SPORTS={none:'Football only / no other sports',track:'Track and field',basketball:'Basketball',wrestling:'Wrestling',baseball:'Baseball',soccer:'Soccer'};
 const HISTORY_FORMS={none:'Same position or no prior position',QB:'Quarterback',RB:'Running back',WR:'Wide receiver',TE:'Tight end',OL:'Offensive line',DL:'Defensive line',LB:'Linebacker',DB:'Defensive back'};
 const HISTORY_PRIORS={QB:['throwPower','shortAccuracy','decisionMaking','pocketPresence'],RB:['vision','elusiveness','carrying','breakTackle'],WR:['catching','routes','release'],TE:['catching','routes','runBlocking'],OL:['runBlocking','passBlocking','blockRecognition'],DL:['passRush','runDefense','blockShedding'],LB:['tackling','playRecognition','runDefense'],DB:['manCoverage','zoneCoverage','playRecognition']};
-function historyBaseline(k){
+// Weight-sensitive starting physical ratings; size alone never grants more than 45.
+const CREATION_WEIGHT_TABLE=[[0,45,10],[160,45,15],[180,45,20],[200,44,25],[220,37,32],[240,28,39],[260,18,45],[280,10,45],[300,5,45]];
+function creationBodyBaseline(k){
+ const weight=Number(creatorDetails.weight);
+ const w=Number.isFinite(weight)?Math.max(100,Math.min(450,weight)):155;
+ let row=CREATION_WEIGHT_TABLE[0];for(const entry of CREATION_WEIGHT_TABLE)if(w>=entry[0])row=entry;
+ return k==='speed'?row[1]:k==='strength'?row[2]:null;
+}
+const creationLimit=k=>ATHLETIC.includes(k)||TECHNICAL.includes(k)?70:99;
+// Athletic/Technical allocation reaches at most 70 BEFORE outside bonuses.
+// Family and middle-school history are awarded afterward and can exceed 70 (up to 99).
+function creationBaseline(k){
+ if(PERSONAL.includes(k))return 0;
  const physical={speed:40,accel:39,agility:35,strength:29,jumping:35,stamina:36};
  const mental={decisionMaking:25,vision:23,playRecognition:20,blockRecognition:20,pocketPresence:22};
- const personal={academics:45,behavior:45,socialSkills:43};
+ return creationBodyBaseline(k)??physical[k]??mental[k]??(TECHNICAL.includes(k)?12:22);
+}
+function historyBonus(k){
+ if(PERSONAL.includes(k))return 0;
  const exp=HISTORY_EXPERIENCE[middleHistory.experience]?.[1]||0;
- let n=physical[k]??mental[k]??personal[k]??(TECHNICAL.includes(k)?12:22);
- if(ATHLETIC.includes(k))n+=exp*2;
- else if(TECHNICAL.includes(k))n+=exp*6;
- else if(!PERSONAL.includes(k))n+=exp*3;
+ let n=ATHLETIC.includes(k)?exp*2:TECHNICAL.includes(k)?exp*6:exp*3;
  if(k==='playRecognition'||k==='decisionMaking'||k==='blockRecognition')n+=exp*2;
  const sport={track:['speed','accel','stamina'],basketball:['agility','jumping','catching'],wrestling:['strength','breakTackle','tackling'],baseball:['throwPower','catching','ballSkills'],soccer:['stamina','agility','accel']}[middleHistory.sports]||[];
  if(sport.includes(k))n+=8;
@@ -64,25 +76,42 @@ function historyBaseline(k){
  if(current.includes(k)&&exp>=2)n+=4;
  return n;
 }
-function getCreatorValues(){if(!family)ensureFamily();const result={};for(const k of [...ATHLETIC,...TECHNICAL,...PERSONAL])result[k]=clamp99(historyBaseline(k)+(allocation[k]||0)+parentBonus(k));return result}
+function allocationHeadroom(k){return Math.max(0,creationLimit(k)-creationBaseline(k))}
+function normalizeCreatorAllocation(){
+ for(const k of [...ATHLETIC,...TECHNICAL,...PERSONAL]){
+  allocation[k]=Math.max(0,Math.min(pointsCost(allocation[k]||0),allocationHeadroom(k)));
+ }
+}
+function getCreatorValues(){
+ if(!family)ensureFamily();const result={};
+ for(const k of [...ATHLETIC,...TECHNICAL,...PERSONAL])
+  result[k]=clamp99(creationBaseline(k)+(allocation[k]||0)+historyBonus(k)+parentBonus(k));
+ return result;
+}
 function historyCreatorHtml(){const select=(id,val,opts)=>'<label>'+id+'<select onchange="part9History(this.dataset.kind,this.value)" data-kind="'+id+'">'+Object.entries(opts).map(([key,label])=>'<option value="'+key+'" '+(val===key?'selected':'')+'>'+e(Array.isArray(label)?label[0]:label)+'</option>').join('')+'</select></label>';
  const v=getCreatorValues(),base={};const map={speed:'speed',accel:'accel',agility:'agility',elusiveness:'elusiveness',vision:'vision',carrying:'carrying',catching:'catching',routes:'routes',release:'release',power:'strength',endurance:'stamina',accuracy:'shortAccuracy',arm:'throwPower',awareness:'decisionMaking',blocking:'runBlocking'};
  for(const k of ATTRS)base[k]=v[map[k]||k]||0;
- return '<section class="panel"><h2>03 · Middle School / Player History</h2><p class="muted">Your background establishes nonzero ninth-grade abilities. Allocated points and family influence are added afterward. Sports and prior football positions can overlap.</p><div class="signup-grid">'+select('experience',middleHistory.experience,HISTORY_EXPERIENCE)+select('sports',middleHistory.sports,HISTORY_SPORTS)+select('former',middleHistory.former,HISTORY_FORMS)+'</div><div class="line"><strong>Projected freshman '+e(creatorPosition)+' OVR</strong><strong>'+rating(base,creatorPosition)+'</strong></div><p class="muted">Preview uses current history, family bonuses and allocated attributes. Physical maturity and future potential are separate from starting OVR.</p></section>';
+ return '<section class="panel"><h2>03 · Middle School / Player History</h2><p class="muted">Your size/position establishes the baseline. Creation points are applied next (Athletic/Technical capped at 70 before bonuses), followed by middle-school and family bonuses. Sports and prior football positions can overlap.</p><div class="signup-grid">'+select('experience',middleHistory.experience,HISTORY_EXPERIENCE)+select('sports',middleHistory.sports,HISTORY_SPORTS)+select('former',middleHistory.former,HISTORY_FORMS)+'</div><div class="line"><strong>Projected freshman '+e(creatorPosition)+' OVR</strong><strong>'+rating(base,creatorPosition)+'</strong></div><p class="muted">Preview uses current history, family bonuses and allocated attributes. Physical maturity and future potential are separate from starting OVR.</p></section>';
 }
 
-function creatorStat(k){const bonus=parentBonus(k),base=historyBaseline(k),n=allocation[k]||0;return '<div class="creator-stat"><div class="line"><label for="cr_'+k+'">'+e(LABELS[k])+'</label><strong id="cv_'+k+'">'+clamp99(n+bonus+base)+'</strong></div><input id="cr_'+k+'" aria-label="'+e(LABELS[k])+'" type="range" min="0" max="'+Math.max(0,Math.min(ATHLETIC.includes(k)||TECHNICAL.includes(k)?70:99-base-bonus,99-base-bonus,300-spent()+pointsCost(n)))+'" value="'+n+'" oninput="part9SetStat(\''+k+'\',this.value)"><small class="muted">Baseline '+base+' · Allocated +'+n+' · Family +'+bonus+'</small></div>'}
-function creatorForm(){ensureFamily();const pos=creatorPosition,keys=CORE_BY_POSITION[POSITION_FAMILIES[pos]]||CORE_BY_POSITION.RB;const secondary=TECHNICAL.filter(k=>!keys.includes(k));const v=getCreatorValues();
+function creatorStat(k){
+ const bonus=parentBonus(k),base=creationBaseline(k),history=historyBonus(k),n=allocation[k]||0;
+ const max=Math.max(0,Math.min(allocationHeadroom(k),300-spent()+pointsCost(n)));
+ const value=clamp99(base+n+history+bonus);
+ const detail=PERSONAL.includes(k)?'Allocated +'+n+' · No baseline or bonus':'Baseline '+base+' · Allocated +'+n+' (pre-bonus '+(base+n)+') · History +'+history+' · Family +'+bonus;
+ return '<div class="creator-stat"><div class="line"><label for="cr_'+k+'">'+e(LABELS[k])+'</label><strong id="cv_'+k+'">'+value+'</strong></div><input id="cr_'+k+'" aria-label="'+e(LABELS[k])+'" type="range" min="0" max="'+max+'" value="'+n+'" oninput="part9SetStat(\''+k+'\',this.value)"><small class="muted">'+detail+' · Pre-bonus allocation cap '+creationLimit(k)+'</small></div>';
+}
+function creatorForm(){ensureFamily();normalizeCreatorAllocation();const pos=creatorPosition,keys=CORE_BY_POSITION[POSITION_FAMILIES[pos]]||CORE_BY_POSITION.RB;const secondary=TECHNICAL.filter(k=>!keys.includes(k));const v=getCreatorValues();
  const heightFeet=Math.floor(creatorDetails.height/12),heightInches=creatorDetails.height%12;
- return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.6 · Registration</span></div><div class="signup-masthead"><h1>Create your freshman</h1><p>Player · Family · Attributes</p></div>'+
- '<section class="panel"><h2>01 · Student information</h2><label>Full name<input id="name" maxlength="30" value="'+e(creatorDetails.name)+'"></label><div class="signup-grid"><label>Hometown<input id="hometown" maxlength="48" value="'+e(creatorDetails.hometown)+'"></label><label>Jersey number<input id="jersey" type="number" min="0" max="99" value="'+creatorDetails.jersey+'"></label></div><div class="signup-grid"><label>Primary position<select id="position" onchange="part9ChangePosition(this.value)">'+Object.keys(GROUPS).map(p=>'<option '+(p===pos?'selected':'')+'>'+p+'</option>').join('')+'</select></label><label>Hand<select id="hand"><option '+(creatorDetails.hand==='Right'?'selected':'')+'>Right</option><option '+(creatorDetails.hand==='Left'?'selected':'')+'>Left</option></select></label></div><div class="signup-grid"><div><label>Height</label><div class="height-inputs"><label>Feet<select id="heightFeet">'+[4,5,6].map(f=>'<option value="'+f+'" '+(heightFeet===f?'selected':'')+'>'+f+'</option>').join('')+'</select></label><label>Inches<select id="heightInches">'+Array.from({length:12},(_,i)=>'<option '+(heightInches===i?'selected':'')+'>'+i+'</option>').join('')+'</select></label></div></div><label>Weight (lb)<input id="weight" type="number" min="100" max="450" value="'+creatorDetails.weight+'"></label></div></section>'+
+ return '<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.602 · Registration</span></div><div class="signup-masthead"><h1>Create your freshman</h1><p>Player · Family · Attributes</p></div>'+
+ '<section class="panel"><h2>01 · Student information</h2><label>Full name<input id="name" maxlength="30" value="'+e(creatorDetails.name)+'"></label><div class="signup-grid"><label>Hometown<input id="hometown" maxlength="48" value="'+e(creatorDetails.hometown)+'"></label><label>Jersey number<input id="jersey" type="number" min="0" max="99" value="'+creatorDetails.jersey+'"></label></div><div class="signup-grid"><label>Primary position<select id="position" onchange="part9ChangePosition(this.value)">'+Object.keys(GROUPS).map(p=>'<option '+(p===pos?'selected':'')+'>'+p+'</option>').join('')+'</select></label><label>Hand<select id="hand"><option '+(creatorDetails.hand==='Right'?'selected':'')+'>Right</option><option '+(creatorDetails.hand==='Left'?'selected':'')+'>Left</option></select></label></div><div class="signup-grid"><div><label>Height</label><div class="height-inputs"><label>Feet<select id="heightFeet">'+[4,5,6].map(f=>'<option value="'+f+'" '+(heightFeet===f?'selected':'')+'>'+f+'</option>').join('')+'</select></label><label>Inches<select id="heightInches">'+Array.from({length:12},(_,i)=>'<option '+(heightInches===i?'selected':'')+'>'+i+'</option>').join('')+'</select></label></div></div><label>Weight (lb)<input id="weight" type="number" min="100" max="450" value="'+creatorDetails.weight+'" onchange="part9WeightChanged()"></label></div></section>'+
  '<section class="panel"><h2>02 · Family roll</h2>'+creatorFamilyHtml()+'</section>'+historyCreatorHtml()+'<section class="panel"><h2>04 · School selection</h2><label>Family background <select id="bg">'+BG.map(x=>'<option value="'+x[0]+'" '+(x[0]===creatorDetails.bg?'selected':'')+'>'+e(x[1])+'</option>').join('')+'</select></label>'+schoolChoiceRow()+'</section>'+
- '<section class="panel"><h2>05 · Attribute allocation</h2><div class="line"><strong>Shared creation budget</strong><strong id="spent">'+spent()+' / 300</strong></div><div class="meter signup-budget"><i style="width:'+(spent()/3)+'%"></i></div><p id="remaining-points" class="muted">'+(300-spent())+' points remaining · Allocations start at 0; history supplies realistic starting abilities.</p><p class="muted">Each point adds 1 to your history baseline. Athletic and Technical allocations cap at 70 additional points; family bonuses apply separately. Final ratings cap at 99. Technical skills not selected for your position remain available for multiposition development. Position OVR uses position-specific Athletic and Technical weights; detailed play simulation remains separate.</p><h3>Athletic · Universal</h3><div class="creator-stats-grid">'+ATHLETIC.map(creatorStat).join('')+'</div><h3>Technical · '+e(pos)+' priority</h3><div class="creator-stats-grid">'+keys.map(creatorStat).join('')+'</div><details><summary>Other technical skills ('+secondary.length+')</summary><div class="creator-stats-grid">'+secondary.map(creatorStat).join('')+'</div></details><h3>Personal</h3><div class="creator-stats-grid">'+PERSONAL.map(creatorStat).join('')+'</div></section>'+
+ '<section class="panel"><h2>05 · Attribute allocation</h2><div class="line"><strong>Shared creation budget</strong><strong id="spent">'+spent()+' / 300</strong></div><div class="meter signup-budget"><i style="width:'+(spent()/3)+'%"></i></div><p id="remaining-points" class="muted">'+(300-spent())+' points remaining · Allocations start at 0; history bonuses apply after allocation.</p><p class="muted">Creation points are added to the size/position baseline first; Athletic and Technical allocation stops at 70 before bonuses. Middle-school history and family bonuses apply afterward and can raise the final rating to 99. Personal ratings have no baseline and are determined by allocation (up to 99). Size-based Speed and Strength starting values cap at 45. Technical skills not selected for your position remain available for multiposition development. Position OVR uses position-specific Athletic and Technical weights; detailed play simulation remains separate.</p><h3>Athletic · Universal</h3><div class="creator-stats-grid">'+ATHLETIC.map(creatorStat).join('')+'</div><h3>Technical · '+e(pos)+' priority</h3><div class="creator-stats-grid">'+keys.map(creatorStat).join('')+'</div><details><summary>Other technical skills ('+secondary.length+')</summary><div class="creator-stats-grid">'+secondary.map(creatorStat).join('')+'</div></details><h3>Personal</h3><div class="creator-stats-grid">'+PERSONAL.map(creatorStat).join('')+'</div></section>'+
  '<section class="panel"><button onclick="part9Start()">Submit registration & begin career</button></section>';
 }
 function snapshotCreator(){const byId=id=>document.getElementById(id);if(!byId('name'))return;creatorDetails={name:byId('name').value,school:Number(byId('school')?.value||0),bg:byId('bg').value,height:Number(byId('heightFeet').value)*12+Number(byId('heightInches').value),weight:Number(byId('weight').value),hometown:byId('hometown').value,jersey:Number(byId('jersey').value),hand:byId('hand').value}}
-function setStat(k,n){n=clamp99(n);const allowed=Math.max(0,300-spent()+pointsCost(allocation[k]||0));allocation[k]=Math.min(n,allowed,99-parentBonus(k)-historyBaseline(k),ATHLETIC.includes(k)||TECHNICAL.includes(k)?70:99);render()}
-function startCareer(){snapshotCreator();if(spent()>300){alert('You exceeded the 300-point budget.');return}const v=getCreatorValues(),s=creatorDetails;
+function setStat(k,n){if(![...ATHLETIC,...TECHNICAL,...PERSONAL].includes(k))return;n=clamp99(n);const allowed=Math.max(0,300-spent()+pointsCost(allocation[k]||0));allocation[k]=Math.max(0,Math.min(n,allowed,allocationHeadroom(k)));render()}
+function startCareer(){snapshotCreator();normalizeCreatorAllocation();if(spent()>300){alert('You exceeded the 300-point budget.');return}const v=getCreatorValues(),s=creatorDetails;
  if(s.height<58||s.height>80){alert('Choose a height between 4 ft 10 in and 6 ft 8 in.');return}
  if(!Number.isInteger(s.jersey)||s.jersey<0||s.jersey>99){alert('Choose a jersey from 0 to 99.');return}
  if(!Number.isFinite(s.weight)||s.weight<100||s.weight>450){alert('Choose a valid weight from 100–450 pounds.');return}
@@ -94,7 +123,7 @@ function startCareer(){snapshotCreator();if(spent()>300){alert('You exceeded the
  for(const [i,g] of GROUPS[creatorPosition].entries())if(i<3)game.focus[g[0]]=[3,2,2][i];
  game.schedule=createSchedule();academicState();socialState();healthState();summerState();profileState();profileMilestone('registration','Registration accepted','Signed football registration at '+school.name+'.',{snapshot:true});note('Freshman year begins at '+school.name+'.');persist();tab='home';render();
 }
-window.part9History=(kind,value)=>{if(!Object.prototype.hasOwnProperty.call(middleHistory,kind))return;snapshotCreator();middleHistory[kind]=value;render()};window.part9Reroll=()=>{snapshotCreator();rerollFamily()};window.part9ChangePosition=p=>{snapshotCreator();creatorPosition=p;render()};window.part9SetStat=setStat;window.part9Start=startCareer;
+window.part9WeightChanged=()=>{snapshotCreator();normalizeCreatorAllocation();render()};window.part9History=(kind,value)=>{if(!Object.prototype.hasOwnProperty.call(middleHistory,kind))return;snapshotCreator();middleHistory[kind]=value;render()};window.part9Reroll=()=>{snapshotCreator();rerollFamily()};window.part9ChangePosition=p=>{snapshotCreator();creatorPosition=p;render()};window.part9SetStat=setStat;window.part9Start=startCareer;
 // Event-choice quality uses the player's current behavior, not arbitrary index order.
 function qualityWindow(behavior){return behavior<25?0:behavior<50?1:behavior<75?2:3}
 const oldMaybeEvent=maybeEvent,oldChooseEvent=chooseEvent;
