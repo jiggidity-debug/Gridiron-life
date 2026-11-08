@@ -203,8 +203,8 @@ function collegePossessionGame(role,opp,forceOut=false){
  const runRate=SCHEMES.find(x=>x[0]===c.program.scheme)?.[1]??.50;
  const strength=c.program.prestige,against=opp.prestige;
  const passRate=cl(.52+(strength-against)/230,.27,.76);
- const matchPass=cl(.48+((game.attrs.accuracy||38)*.65+(game.attrs.awareness||38)*.35-50)/320+(strength-against)/390-game.fatigue/1100,.29,.83);
- const competition=cl((rating(game.attrs,game.pos)-against)/270,-.14,.14);
+ const matchPass=cl(.48+((game.attrs.accuracy||38)*.65+(game.attrs.awareness||38)*.35-50)/320+(strength-against)/390-game.fatigue/1100+(typeof v6GameplayKnowledgeBonus==='function'?v6GameplayKnowledgeBonus():0),.29,.83);
+ const competition=cl((rating(game.attrs,game.pos)-against)/270+(typeof v6GameplayCatchBonus==='function'?v6GameplayCatchBonus():0)+(typeof v6GameplayRunBonus==='function'?v6GameplayRunBonus()*.01:0),-.14,.20);
  const simulate=(ours)=>{
    let points=0;
    const teamPower=ours?strength:against,defPower=ours?against:strength;

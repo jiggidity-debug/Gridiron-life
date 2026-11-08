@@ -94,7 +94,7 @@ function simulateGame(){
     }
     if(game.pos==='QB')you=!game.injury&&rank<=2&&Math.random()<(role==='Starter'?.88:.20);
     if(run){
-      let yards=cl(R(-3,9)+Math.round((game.attrs.vision-45)/12)+Math.round((sch.prestige-(match.opponentRunDefense??match.opponentStrength))/16)-Math.floor(game.fatigue/34)-Math.floor(healthState().wear/35),-5,23);
+      let yards=cl(R(-3,9)+Math.round((game.attrs.vision-45)/12)+Math.round((sch.prestige-(match.opponentRunDefense??match.opponentStrength))/16)-Math.floor(game.fatigue/34)-Math.floor(healthState().wear/35)+(you&&['RB','FB'].includes(game.pos)&&typeof v6GameplayRunBonus==='function'?v6GameplayRunBonus():0),-5,23);
       teamRush+=yards;
       if(you&&game.pos==='QB'){
         stats.offSnaps++;
@@ -116,7 +116,7 @@ function simulateGame(){
       }else advance(yards,false,'run');
     }else{
       let passingSkill=game.pos==='QB'?(game.attrs.accuracy*.65+game.attrs.awareness*.35):game.pos==='WR'||game.pos==='TE'?game.attrs.catching:48;
-      let success=Math.random()<cl(.51+(passingSkill-45)/310+(sch.prestige-(match.opponentPassDefense??match.opponentStrength))/210-game.fatigue/900,.24,.85),yards=success?R(1,Math.max(10,Math.min(35,Math.round(14+(game.pos==='QB'?game.attrs.arm:50)/6)))):0;
+      let success=Math.random()<cl(.51+(passingSkill-45)/310+(sch.prestige-(match.opponentPassDefense??match.opponentStrength))/210-game.fatigue/900+(you&&typeof v6GameplayCatchBonus==='function'?v6GameplayCatchBonus():0)+(typeof v6GameplayKnowledgeBonus==='function'?v6GameplayKnowledgeBonus():0),.24,.85),yards=success?R(1,Math.max(10,Math.min(35,Math.round(14+(game.pos==='QB'?game.attrs.arm:50)/6)))):0;
       teamPass+=yards;
       if(you&&(['WR','TE','RB','FB'].includes(game.pos))){
         stats.offSnaps++;
