@@ -1,9 +1,3 @@
-# Gridiron Life v0.6 — playable HUD and NFL career update
-
-See **README_UPDATE.md** for current features, installation, limitations, and test status. The notes below describe the v0.5/Part 9 baseline still included in this build.
-
----
-
 # Gridiron Life v0.5 — Part 9: Life, Creation & HUD (playtest build)
 
 ## Included in this update

@@ -34,8 +34,7 @@ function startNextSchoolYear(){
   const turnover=annualRosterTurnover();
   game.grade++;game.year++;game.placement=null;
   if(game.squadPreference==='Freshman'&&game.grade>9||game.squadPreference==='JV'&&game.grade>11)game.squadPreference='Auto';
-  const maturity=game.physicalType==='late'&&game.grade>=11?R(5,10):game.physicalType==='early'?R(0,2):R(2,5);
-  game.weight+=maturity;game.attrs.power=cl(game.attrs.power+Math.floor(maturity/3),20,99);
+  // Physical development is applied progressively by the growth system during each school week.
   game.squadRecords=emptySquadRecords();game.programRecord=[0,0];game.record=[0,0];game.endFallAfterThisWeek=false;game.competition=null;game.schedule=[];game.schedule=createSchedule();
   profileMilestone('year-'+game.year,'Entered grade '+game.grade,'New school year began at '+game.school.name+'.',{snapshot:true});
   game.history.unshift({title:'School-year roster turnover',text:turnover.graduates+' seniors graduated; '+turnover.entrants+' freshmen arrived. You are entering grade '+game.grade+' for Year '+game.year+'.'});

@@ -56,7 +56,83 @@ function rating(a,p){
 
 function levelsForSchool(school){return school.classif>=4?['Freshman','JV','Varsity']:school.classif>=2?['JV','Varsity']:['Varsity']}
 
-function newNpc(school,pos,grade,id){let attrs={};ATTRS.forEach(k=>{let base=R(30,54)+Math.round((school.prestige-50)/9)+(grade-9)*R(2,4);attrs[k]=cl(base,25,91)});return {id,name:pick(FN)+' '+pick(LN),grade,pos,attrs,ovr:rating(attrs,pos),joinedYear:game?.year||1}}
+/* v0.601 NPC generation: freshmen use the same 0-99 scale as the player.
+   20-45 is the freshman POSitional OVR range, not an individual-attribute cap.
+   Discretionary football work is unusual; organized team practice is universal. */
+const NPC_COMMITMENT=[['casual',60],['occasional',30],['dedicated',9],['obsessed',1]];
+function npcCommitmentRoll(){let r=R(1,100);for(const [kind,pct] of NPC_COMMITMENT){r-=pct;if(r<=0)return kind}return 'casual'}
+function npcPersonality(kind){
+ const level={casual:35,occasional:52,dedicated:78,obsessed:93}[kind]||35;
+ return {discipline:cl(level+R(-22,18),5,99),workEthic:cl(level+R(-16,16),5,99),coachability:R(20,95),competitiveness:R(20,98),curiosity:R(20,95),sociability:R(20,98),playfulness:R(20,98)};
+}
+function npcBuildFreshman(school,pos,id){
+ const commitment=npcCommitmentRoll(),personality=npcPersonality(commitment);
+ // Gifted raw measurables are independent of commitment to extra training.
+ const gifted=Math.random()<.13,experience=pick(['none','recreation','school','youth']);
+ const base=R(22,41)+Math.round(((school?.coaching||50)-50)/35)+({none:-2,recreation:0,school:2,youth:3}[experience]||0);
+ const target=cl(base+(gifted?R(1,4):0),20,45);
+ const attrs={};
+ const physicalKeys=['speed','accel','agility','power','endurance'];
+ ATTRS.forEach(k=>{const phys=physicalKeys.includes(k);const aptitude=gifted&&phys?R(7,19):0;
+   attrs[k]=cl(target+R(-10,10)+aptitude+(phys?R(-2,2):0),8,75);
+ });
+ // Bring the actual weighted legacy OVR into range without flattening the gifts/weaknesses.
+ let current=rating(attrs,pos),iterations=0;
+ while((current<20||current>45)&&iterations++<35){const delta=current<20?1:-1;
+   for(const k of GROUPS[pos].flatMap(g=>g[2]))attrs[k]=cl(attrs[k]+delta,8,75);
+   current=rating(attrs,pos);
+ }
+ return {id,name:pick(FN)+' '+pick(LN),grade:9,pos,attrs,ovr:current,joinedYear:game?.year||1,
+  experience,commitment,personality,gifted,academics:{gpa:cl(Math.round((2.35+(personality.discipline-50)*.008+(personality.workEthic-50)*.005+R(-75,75)/100)*100)/100,0.6,4),weeks:0,history:[]},development:{progress:{},weeks:0,extraSessions:0,mandatorySessions:0}};
+}
+function newNpc(school,pos,grade,id){
+ const npc=npcBuildFreshman(school,pos,id);
+ // Older inaugural cohorts grew through an abbreviated modeled history, not +3/attr/year.
+ for(let year=9;year<grade;year++){npcFinishYear(npc,school,true);if(npc.academics)npc.academics.history.push({grade:year,gpa:npc.academics.gpa});}
+ npc.grade=grade;npc.ovr=rating(npc.attrs,npc.pos);
+ return npc;
+}
+function npcFinishYear(npc,school,initial=false){
+ if(!npc.development)npc.development={progress:{},weeks:0,extraSessions:0,mandatorySessions:0};
+ // Maturation improves a limited number of physical traits, not every attribute.
+ let maturity=R(0,2)+(npc.gifted&&Math.random()<.25?1:0);
+ const tools=['speed','accel','agility','power','endurance'];
+ for(let j=0;j<maturity;j++){
+  const k=pick(tools);npc.attrs[k]=cl((npc.attrs[k]||25)+1,0,99);
+ }
+ if(initial){
+  // Approximate past team-practice exposure in a way that keeps starting seniors credible.
+  const keys=GROUPS[npc.pos].flatMap(g=>g[2]);
+  const gains=npc.commitment==='obsessed'?R(3,6):npc.commitment==='dedicated'?R(2,5):npc.commitment==='occasional'?R(1,3):R(0,2);
+  for(let j=0;j<gains;j++){const k=pick(keys);npc.attrs[k]=cl(npc.attrs[k]+1,0,99)}
+ }
+ npc.ovr=rating(npc.attrs,npc.pos);
+}
+function npcDevelopWeek(school){
+ if(!game?.team?.length||game.stage==='college'||game.stage==='nfl')return;
+ const phase=PHASES[game.phase],teamHours=phase?.teamHours||0;
+ for(const npc of game.team){
+  const d=npc.development||(npc.development={progress:{},weeks:0,extraSessions:0,mandatorySessions:0});
+  d.weeks++;
+  const traits=npc.personality||(npc.personality=npcPersonality(npc.commitment||'casual'));
+  const commitment=npc.commitment||'casual';
+  // More than 90% of NPCs do not train independently on a regular schedule.
+  const extraChance={casual:.015,occasional:.09,dedicated:.62,obsessed:.94}[commitment]??.015;
+  const extra=Math.random()<extraChance;
+  if(extra)d.extraSessions++;
+  if(teamHours>0)d.mandatorySessions++;
+  // Most gains are incremental. Practice and reps do not guarantee a rating point.
+  const coaching=cl((school?.coaching||55)/65,.65,1.35);
+  const effort=cl(.65+traits.workEthic/230+traits.coachability/300,.65,1.35);
+  const keys=GROUPS[npc.pos].flatMap(g=>g[2]);
+  const selected=pick(keys);
+  let gain=(teamHours>0?.22:0)+(extra?.90:0);
+  gain*=coaching*effort*cl((105-(npc.attrs[selected]||40))/80,.12,1.25);
+  d.progress[selected]=(d.progress[selected]||0)+gain;
+  while(d.progress[selected]>=1&&npc.attrs[selected]<99){npc.attrs[selected]++;d.progress[selected]--}
+  npc.ovr=rating(npc.attrs,npc.pos);
+ }
+}
 
 function positionRoomPerGrade(school){
  const cls=Number(school?.classif)||3;
@@ -73,7 +149,7 @@ function annualRosterTurnover(){
   game.alumni=game.alumni||[];
   game.alumni.push(...departing.map(x=>({...x,graduatedAfterYear:game.year,ovr:rating(x.attrs,x.pos)})));
   let staying=game.team.filter(x=>x.grade<12);
-  for(let x of staying){x.grade++;for(let k of ATTRS)x.attrs[k]=cl(x.attrs[k]+R(0,3),20,95);x.ovr=rating(x.attrs,x.pos)}
+  for(let x of staying){npcFinishYear(x,game.school);x.grade++;x.ovr=rating(x.attrs,x.pos)}
   game.team=[...staying,...makeFreshmen(positionRoomPerGrade(game.school))];
   return {graduates:departing.length,entrants:positionRoomPerGrade(game.school),names:departing.map(x=>x.name)};
 }

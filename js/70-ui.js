@@ -243,7 +243,7 @@ function scoutReport(match){
 }
 function competitionPanels(){
  const c=competitionState(),status=seasonStatusText(),ranked=districtTable(),p=c.postseason;
- const standings='<table><thead><tr><th>Rank</th><th>School</th><th>District</th><th>Overall</th><th>STR</th></tr></thead><tbody>'+ranked.map((x,i)=>'<tr'+(x.id==='school'?' style="color:#f3c86e;font-weight:800"':'')+'><td>'+(i+1)+'</td><td>'+e(x.name)+(i<4?' · Playoff position':'')+'</td><td>'+x.districtRecord.join('–')+'</td><td>'+x.record.join('–')+'</td><td>'+x.strength+'</td></tr>').join('')+'</tbody></table>';
+ const standings='<table><thead><tr><th>Rank</th><th>School</th><th>District</th><th>Overall</th><th>HS Index</th></tr></thead><tbody>'+ranked.map((x,i)=>'<tr'+(x.id==='school'?' style="color:#f3c86e;font-weight:800"':'')+'><td>'+(i+1)+'</td><td>'+e(x.name)+(i<4?' · Playoff position':'')+'</td><td>'+x.districtRecord.join('–')+'</td><td>'+x.record.join('–')+'</td><td>'+Math.round(x.strength*.65)+'</td></tr>').join('')+'</tbody></table>';
  const sched=c.fixtures.map(m=>{
   const g=(game.games||[]).find(x=>x.year===game.year&&x.week===m.week&&!x.playoff);
   const value=g?(g.win?'W ':'L ')+g.score+'–'+g.opp:'Upcoming';
@@ -257,7 +257,7 @@ function competitionPanels(){
    return '<div class="line'+(m.aId==='school'||m.bId==='school'?' accent':'')+'"><span>'+e(a?.name||'TBD')+' vs '+e(b?.name||'TBD')+'</span><strong>'+ (m.winnerId?m.scoreA+'–'+m.scoreB:'Not played')+'</strong></div>';
   }).join('')+'</details>').join('');}
  return panel('District standings · '+game.school.classif+'A',
-  '<p><strong>Playoff status: '+e(status.description)+'</strong></p><p class="muted">Fictional 8-school district. Top four qualify. Standings prioritize district wins and head-to-head results, then point difference. The postseason uses a fictional 64-team, six-round state bracket.</p>'+standings)
+  '<p><strong>Playoff status: '+e(status.description)+'</strong></p><p class="muted">Fictional 8-school district. Top four qualify. Standings prioritize district wins and head-to-head results, then point difference. The postseason uses a fictional 64-team, six-round state bracket. HS Index is a display-only program-relative measure (65% of simulation team strength), NOT a player OVR or a college/NFL talent rating.</p>'+standings)
   +panel('Schedule · '+c.regularWeeks+' games',sched)
   +panel('State playoffs & bracket',bracket);
 }
@@ -304,7 +304,7 @@ function squadChoicesPanel(){
 function teamScreen(){
   let d=depth(),s=game.school,levels=levelsForSchool(s),rows=levels.map(l=>{let record=game.squadRecords?.[l]||[0,0];return '<div class="tile"><strong>'+l+'</strong><div class="num">'+record[0]+'–'+record[1]+'</div><small>'+d.squads[l].length+' players at '+game.pos+'</small></div>'}).join('');
   let starts=game.positionStarts||{};
-  let charts=levels.slice().reverse().map(l=>'<h3>'+l+' · '+(d.level===l?'YOUR PRIMARY SQUAD':'')+'</h3><table><thead><tr><th>#</th><th>Player</th><th>Grade</th><th>OVR</th><th>Starts*</th></tr></thead><tbody>'+d.squads[l].map((x,i)=>'<tr'+(x.id==='you'?' style="color:#f3c86e;font-weight:800"':'')+'><td>'+(i+1)+'</td><td>'+e(x.name)+(x.id==='you'?' (YOU)':'')+(i===0?' · Starter':'')+'</td><td>'+x.grade+'</td><td>'+x.ovr+'</td><td>'+((starts[x.id]||{})[l]||0)+'</td></tr>').join('')+'</tbody></table>'+
+  let charts=levels.slice().reverse().map(l=>'<h3>'+l+' · '+(d.level===l?'YOUR PRIMARY SQUAD':'')+'</h3><table><thead><tr><th>#</th><th>Player</th><th>Grade</th><th>OVR</th><th>Starts*</th></tr></thead><tbody>'+d.squads[l].map((x,i)=>'<tr'+(x.id==='you'?' style="color:#f3c86e;font-weight:800"':'')+'><td>'+(i+1)+'</td><td><button type="button" class="npc-name-link" onclick="v601OpenPlayer('+JSON.stringify(x.id).replace(/"/g,'&quot;')+')">'+e(x.name)+'</button>'+(x.id==='you'?' (YOU)':'')+(i===0?' · Starter':'')+'</td><td>'+x.grade+'</td><td>'+x.ovr+'</td><td>'+((starts[x.id]||{})[l]||0)+'</td></tr>').join('')+'</tbody></table>'+
     (d.dressed[l]?.length?'<p><strong>Dressing for '+l+' as backups while playing for a lower squad:</strong> '+d.dressed[l].map(id=>{const x=d.allPlayers.find(x=>x.id===id);return e(x?.name||id)+(id==='you'?' (YOU)':'')}).join(' · ')+'</p>':'')) .join('');
   let match=currentMatchup();
   return panel('Your school','<h3>'+e(s.name)+' · '+s.classif+'A</h3><p>'+e(s.coach)+' · '+e(s.scheme)+' offense · '+e(s.defense)+' defense</p><div class="grid">'+[['Prestige',s.prestige],['Coaching',s.coaching],['Facilities',s.facilities],['Run rate',Math.round(s.runRate*100)+'%'],['Star reliance',s.star+'%'],['Expectations',s.expectations]].map(v=>'<div class="tile"><small>'+v[0]+'</small><div class="num">'+v[1]+'</div></div>').join('')+'</div>')

@@ -1,56 +1,31 @@
-# Gridiron Life v0.6 — HUD + Professional Career Playtest
+# Gridiron Life v0.591 — Patch Release
 
-**Release type:** Full playable website, November 2026. Extends the v0.591 combined baseline. This is a significant playable systems update, **not** the complete multi-mode simulation overhaul discussed in design.
+Version convention: 5 = major release, 9 = minor release, 1 = bug-fix revision. The next bug-fix revision is v0.592. This package contains the Track 1 fixes including the character-creation scroll correction. Save format remains version 5; no save reset is required solely for the label change.
 
-## New in v0.6
+# Gridiron Life — Part 9 Track 1 Patch (November 7, 2026)
 
-### Six-button, compact HUD
-- Fixed **Hub, Player, Develop, Team, Career, World** bottom navigation, persistent three-column player/team/OVR header, position-relevant four-rating quick strip.
-- Hub uses a **2×2 layout**: Previous Game, Next Game, Story Opportunity, and three independent activity shortcuts. Actions adapt to the current career phase.
-- Player page has **four attribute/rating pairs per row**, centered categories, a horizontal **four-button skill profile** and an accessible Personality preview **above** the bottom navigation.
-- Detailed skill trees, learned scheme knowledge/physical fit, and seven personality tendencies replace the main content rather than opening another giant page. **Badges appear on mastered technique nodes**, not in a redundant badge menu.
-- Team theme or personal color preference, saved with the career; mobile-first CSS keeps top/bottom controls fixed. Larger, detailed legacy reports are paginated by section and their individual report/list area can scroll when necessary.
+This folder is the **full website**, based on the Part 9 full package. Upload all its files to the GitHub Pages deployment branch to use the update; the companion update ZIP contains only changed files.
 
-### Player progression and learning
-- Running back skill branches: Carrier, Receiving (Flat, Swing, Angle, Wheel, Screen, Option), Blocking/Protection and Scheme Compatibility. Other position families have their own technique branches.
-- Techniques develop through selected training focus and football weeks; bronze/silver/gold badges denote learned mastery. Technique and scheme proficiency now have **modest effects in high-school and college play resolution**, as well as in the new NFL engine. They do not add a second overall-rating bonus.
-- Distinguishes **persistent scheme proficiency** from **team-specific playbook knowledge** and **calculated scheme fit**.
-- Seven personality tendencies and an audience-based reputation record. Event behavior choices affect personality. Separate **mental fatigue** from body fatigue; mental fatigue affects individual development and game readiness.
-- Film Study choices (Goof Off, Sleep, Pay Attention, Take Notes) affect knowledge/fatigue; only one session per football week. Recovery choices (Sleep, Relaxation, Rehabilitation) affect condition, with a weekly limit and recovery-hours requirement. High-intensity training at high fatigue displays a risk warning.
-- Existing HS and college development, academic eligibility, medical absences, camps, recruiting stars/rankings, scholarships, JUCO, transfer portal and NIL remain accessible in the game.
+## Implemented / adjusted
+- Registration: 300 points at 1-for-1; 70-point manual cap on each Athletic and Technical attribute, 99 total maximum after separately applied family bonuses.
+- Player OVR: distinct position-specific weighted Athletic and Technical profiles for all 22 positions. Low Strength hurts interior line fit more than cornerback; quarterback relies heavily on passing/decision technical skill. Existing NPCs retain prior rating calculations.
+- Roster: position-room cohort scale by 1A–6A. 1A creates fewer players; existing varsity/JV/freshman squad assignment logic is preserved.
+- Recruiting board: Top 250 normal range 68–72; Top 5 usually 73–74; at most one above 74, with a 77 generational prospect at a rare year interval.
+- Navigation: New Career and Export buttons on the header (reset requires confirmation). Archetype shown next to player name rather than repeatedly in Team.
+- HUD: main bottom navigation retained; generic explanatory paragraphs moved to ? disclosure wherever safe; Exposure text is collapsed; Physical Benchmarks moved to Recruiting and requires a recorded test.
+- Development: player-facing Endurance training references changed to Stamina while preserving the historical internal fatigue stat mapping.
+- Home: Sim Season advances until the phase boundary or a mandatory decision, which interrupts simulation. Confirmation appears first.
+- Academics: GPA remains posted only at semester checkpoints; Academic trend arrows show recent course-grade movement.
+- Position Room: reviewed current code. Rapport, trust, stress and preparedness are impacted by interactions, but a separate event-generator system based on relationships is not yet implemented (NOT claimed fixed).
 
-### Playable NFL **first pass**
-- From college completion (or after three played college seasons in an offseason), declare for the professional draft.
-- Draft-round projection, undrafted free-agent camp offers, **32 fictional professional teams**, differentiated club scheme/strength, contract offers and signing.
-- Four camp evaluations, realistic possibility of an active-roster place, practice squad or release; free-agent tryouts after a cut.
-- Seventeen-game professional season, position-appropriate statistics and saved results, depth competition and practice-squad promotion opportunities, optional three-round fictional postseason.
-- Contract salary accrues by game week, contract years expire, free agency and subsequent seasons are playable. Pro seasons and game logs are stored separately from HS/college history.
-- NFL Career screen shows contract, role, playbook preparation, depth risk, pressure, latest news, game plan and game/roster/history navigation. Game injuries cause medical restriction; training and techniques continue developing.
+## Playtesting and known limitations
+- Static JavaScript syntax checks and dedicated weighted-OVR calculation tests passed.
+- Browser automated testing was unavailable in this sandbox, so manually test the new career flow, game advancement, mobile UI, event handling and save import/export before replacing your primary hosted version.
+- Some old internal training attributes still use historical names for backward compatibility; this is not a separate user-facing Endurance stat.
+- The complete football simulation rewrite, play-by-play presentation and Weekly Wrap-Up remain explicitly paused.
 
-### Save migration
-- Current save format **version 6**, local-browser key `gridiron-life-v6`. The first launch can copy a v0.591 `gridiron-life-v5` save to the new slot while preserving the old key as a rollback copy. Old v4 imports are still supported through the earlier migration routine.
-- Exported files are `gridiron-life-v060-save.json`; imported versions 4, 5 and 6 are accepted. New-game screens retain the baseline 300-point 1-for-1 creation allocation.
-
-## Explicit limitations
-
-This release does **not** claim to fully implement everything considered for v0.6:
-
-- Coach Mode and Owner Mode have not been built. Player Mode is the actual playable career mode.
-- NFL league-wide opponent games, complete 53-man rosters, real NFL salary-cap/CBA details, trades, detailed preseason games and an exact play-by-play/possession simulation remain simplified. The professional league and clubs are fictional. Draft and injury formulas need extended balance testing.
-- Full technique-tree dependencies and unlock events, all position-specific technical models, medical concealment / insurance / family financial aid, nuanced coach incident reputations, proactive stories and relationships, and a complete integrated calendar are not fully implemented.
-- Existing detailed older report screens still support inner scrolling. The new primary HUD itself keeps its header and bottom navigation in place and avoids whole-page scroll.
-- The underlying HS/college match engines and legacy attribute mappings have not been replaced wholesale. Several attributes still have legacy names internally.
-
-## Running locally / publishing on GitHub Pages
-
-1. **Backup and export your existing save first.** The old v0.591 localStorage key stays intact, but you should still keep an exported copy before deploying.
-2. Extract this ZIP to a directory. Open `index.html` in a desktop/mobile browser or host its contents as a static website.
-3. To update GitHub Pages, copy **all** files in the extracted folder into the published repository root with `index.html`, `css/`, and `js/` at the top level. Commit and refresh the page.
-4. A v0.591 career should migrate into the v0.6 slot automatically on first load. New careers are recommended to evaluate the new mechanics.
-5. Use **World → Settings → Export Save** before significant testing or resets.
-
-## Verification
-
-- `node --check` passes on all current JavaScript modules.
-- `python tests/v060-integration.py` passes in a headless Chromium test runner: registration, save write, six-tab HUD, attribute layout, route-tree access, film actions, high-school game, college signing/game, professional declaration/camp/season, settings; zero uncaught browser errors observed.
-- **Not exhaustively playtested:** repeated multi-year NFL contracts, unusual legacy saves, all 22 position simulations, device-specific browser behavior, multi-season recruitment and balancing.
+## Installing
+1. Back up the current GitHub repository / Pages deployment and export an existing save if needed.
+2. Extract the **Full** ZIP and copy its contents to the root of the GitHub Pages branch (where `index.html` lives).
+3. Commit / publish the files and reload with a refreshed tab. Test on a **new career** for updated creation and roster rules.
+4. Saved characters from previous Part 9 builds may not have attributes or rosters rebalanced automatically.

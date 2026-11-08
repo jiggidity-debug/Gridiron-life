@@ -15,10 +15,15 @@ function v6Header(){const n=['nfl','nflEntry'].includes(game.stage)?v6League():n
  const level=n?'NFL · Year '+n.year:!high?'College · Year '+(c?.year||1):'Year '+game.year+' · '+game.grade+'th';
  const pos=game.pos;const spot=n?(n.rosterStatus==='Active roster'?pos+(n.positionRank||2)+(n.positionRank===1?' · Starter':' · Special Teams'):n.rosterStatus):!high&&typeof collegeDepth==='function'?pos+collegeDepth().rank+' · '+collegeDepth().role:typeof depth==='function'?depth().level+' '+pos+depth().rank:'Athlete';
  const quality=typeof playerArchetype==='function'?playerArchetype():pos;
- let quick=['RB','FB'].includes(pos)?[['SPD','speed'],['STR','strength'],['BAL','breakTackle'],['VIS','vision']]:pos==='QB'?[['THP','throwPower'],['SAC','shortAccuracy'],['DEC','decisionMaking'],['SPD','speed']]:['WR','TE'].includes(pos)?[['SPD','speed'],['CAT','catching'],['RTE','routes'],['REL','release']]:[['SPD','speed'],['STR','strength'],['AGI','agility'],['STM','stamina']];
- return '<header class="v6-header"><div class="v6-brand"><strong>◉ GRIDIRON LIFE <span class="v6-version">v0.6</span></strong><span>'+e(n?'NFL Week '+n.week:n?'':game.stage==='college'?'College Week '+c.week:'Week '+game.week)+'</span></div>'+
- '<div class="v6-head3"><div><strong>'+e(game.name)+'</strong><small>#'+e(game.jersey??24)+' · '+e(pos)+'</small><em>'+e(quality)+'</em></div><div><strong>'+e(v6TeamName())+'</strong><small>'+e(level)+'</small><em>'+e(spot)+'</em></div><div class="v6-ovr"><b>'+rating(game.attrs,game.pos)+'</b><small>OVERALL</small><small>Body '+Math.round(game.fatigue)+' · Mind '+Math.round(v6State().mentalFatigue)+'</small></div></div>'+
- '<div class="v6-quick">'+quick.map(a=>'<span>'+a[0]+' <b>'+v6Base(a[1])+'</b></span>').join('')+'</div></header>';
+ const isPro=!!n;
+ const gpaValue=Number(isPro?NaN:game.stage==='college'?c?.gpa:game.gpa);
+ const fatiguePhysical=Number(game.fatigue||0),fatigueMental=Number(v6State().mentalFatigue||0);
+ // Main fatigue indicator uses the higher fatigue burden; the Develop page shows both.
+ const fatigue=Math.round(Math.max(fatiguePhysical,fatigueMental));
+ const indicators=[['STRESS',String(Math.round(Number(game.stress||0))),'Stress: higher is worse'],[isPro?'ROLE':'GPA',isPro?(n.rosterStatus==='Practice squad'?'Practice':n.rosterStatus==='Active roster'?(n.positionRank===1?'Starter':'Backup'):'Camp'):Number.isFinite(gpaValue)?gpaValue.toFixed(2):'—',isPro?'NFL roster role':'Academic GPA'],['FATIGUE',String(fatigue),'Higher of physical ('+Math.round(fatiguePhysical)+') and mental ('+Math.round(fatigueMental)+') fatigue'],['MORALE',String(Math.round(Number(game.morale||0))),'Morale: higher is better']];
+ return '<header class="v6-header"><div class="v6-brand"><strong>◉ GRIDIRON LIFE <span class="v6-version">v0.601</span></strong><span>'+e(n?'NFL Week '+n.week:game.stage==='college'?'College Week '+c.week:'Week '+game.week)+'</span></div>'+ 
+ '<div class="v6-head3"><div><strong>'+e(game.name)+'</strong><small>#'+e(game.jersey??24)+' · '+e(pos)+'</small><em>'+e(quality)+'</em></div><div><strong>'+e(v6TeamName())+'</strong><small>'+e(level)+'</small><em>'+e(spot)+'</em></div><div class="v6-ovr"><b>'+rating(game.attrs,game.pos)+'</b><small>OVERALL</small></div></div>'+ 
+ '<div class="v6-quick">'+indicators.map(x=>'<span title="'+e(x[2])+'"><small>'+e(x[0])+'</small><b>'+e(x[1])+'</b></span>').join('')+'</div></header>';
 }
 function v6Footer(){return '<nav class="v6-footer" aria-label="Main game navigation">'+V6_MENU.map(([name,ic])=>'<button type="button" class="'+(v6UI.page===name?'is-selected':'')+'" aria-current="'+(v6UI.page===name?'page':'false')+'" onclick="v6Change(\''+name+'\')"><span class="v6-footer-icon">'+ic+'</span><small>'+name+'</small></button>').join('')+'</nav>'}
 function v6AttributeRows(){const family=v6Family();const full=game.technicalAttributes||{};
@@ -71,10 +76,32 @@ function v6Hub(){const n=['nfl','nflEntry'].includes(game.stage)?v6League():null
  '<div class="v6-hubtile v6-hub-actions"><small>Quick Activities</small>'+v6Button('Team Practice','v6Change(\'Develop\',\'Practice\')','v6-mini')+v6Button('Film Study','v6Change(\'Develop\',\'Film\')','v6-mini')+v6Button('Individual Development','v6Change(\'Develop\',\'Training\')','v6-mini')+'</div></div>'+
  (feedback?'<p class="v6-feedback">'+e(feedback)+'</p>':'')+'<div class="v6-inline-actions">'+v6Button(e(nextLabel),goNext,'v6-action')+v6Button('Save / Export','exportSave()','v6-stroked')+'</div>'+(n&&n.phase==='freeAgency'?v6Button('View pro offers','v6Change(\'Career\')','v6-action'):'')+'</div>';
 }
-function v6Recent(){const n=game.stage==='nfl'?v6League():null,g=n?n.games[0]:game.stage==='college'||game.stage==='collegeComplete'?game.college?.games?.[0]:game.games?.[0];if(!g)return showDialog('Previous game','No recorded game yet.');showDialog('Last game', '<div class="line"><span>'+e(g.opponentName)+'</span><strong>'+(g.win?'W ':'L ')+g.score+'–'+g.opp+'</strong></div><p>'+e(g.role||'')+' · '+e(v6NFLStatLine(g.stats||{}))+'</p>'+(g.plays||[]).slice(0,10).map(l=>'<div class="log">'+e(l)+'</div>').join(''))}
-function v6Upcoming(){const n=game.stage==='nfl'?v6League():null;if(n){const next=n.phase==='regular'?n.proTeams.find(x=>x.id===n.schedule[n.week-1]?.opponentId):n.phase==='playoffs'?n.proTeams.find(x=>x.id===n.playoffOpponent?.opponentId):null;return showDialog('Next opponent',next?'<p>'+e(next.name)+' · Strength '+next.strength+' · '+e(next.scheme)+'</p>':'<p>No upcoming matchup scheduled.</p>')}if(game.stage==='college'){const m=collegeMatch();return showDialog('College scouting',m?'<p>'+e(m.name)+' · '+e(m.conference?'Conference':'Nonconference')+'</p>':'No college game scheduled.')}return part9Opponent()}
-function v6Opportunity(){const ev=game.scheduledEvent,n=game.stage==='nfl'?v6League():null,c=game.college; if(ev)return showDialog(ev.title,'<p>'+e(ev.body)+'</p>'+ev.choices.map((choice,i)=>v6Button(e(choice[0]),'v6PickEvent('+i+')','v6-stroked')).join(''));const story=n?.news?.[0]||c?.news?.[0];showDialog('Opportunity / News','<p>'+e(story?.title||'No urgent decision this week')+'</p><p>'+e(story?.body||'Choose your next action from the Hub or Development screen.')+'</p>')}
-function v6PickEvent(i){part9CloseDialog();chooseEvent(i)}
+function v6Modal(title,body){
+ const existing=document.querySelector('.part9-dialog');if(existing)existing.remove();
+ const shade=document.createElement('div');shade.className='part9-dialog';
+ shade.innerHTML='<div class="part9-dialog-box" role="dialog" aria-modal="true" aria-label="'+e(title)+'"><div class="line"><h2>'+e(title)+'</h2><button class="alt" onclick="v6CloseModal()">Close</button></div>'+body+'</div>';
+ document.body.appendChild(shade);
+ const close=shade.querySelector('button');if(close)close.focus();
+}
+function v6CloseModal(){document.querySelector('.part9-dialog')?.remove()}
+function v6Recent(){
+ const n=game.stage==='nfl'?v6League():null,g=n?n.games[0]:game.stage==='college'||game.stage==='collegeComplete'?game.college?.games?.[0]:game.games?.[0];
+ if(!g)return v6Modal('Previous game','<p>No recorded game yet.</p>');
+ v6Modal('Last game','<div class="line"><span>'+e(g.opponentName||'Opponent')+'</span><strong>'+(g.win?'W ':'L ')+e(g.score)+'–'+e(g.opp)+'</strong></div><p>'+e(g.role||'')+' · '+e(v6NFLStatLine(g.stats||{}))+'</p>'+(g.plays||[]).slice(0,10).map(l=>'<div class="log">'+e(l)+'</div>').join(''));
+}
+function v6Upcoming(){
+ const n=game.stage==='nfl'?v6League():null;
+ if(n){const next=n.phase==='regular'?n.proTeams.find(x=>x.id===n.schedule[n.week-1]?.opponentId):n.phase==='playoffs'?n.proTeams.find(x=>x.id===n.playoffOpponent?.opponentId):null;return v6Modal('Next opponent',next?'<p>'+e(next.name)+' · Strength '+next.strength+' · '+e(next.scheme)+'</p>':'<p>No upcoming matchup scheduled.</p>')}
+ if(game.stage==='college'){const m=collegeMatch();return v6Modal('College scouting',m?'<p>'+e(m.name)+' · '+e(m.conference?'Conference':'Nonconference')+'</p>':'<p>No college game scheduled.</p>')}
+ const match=currentMatchup();return v6Modal('Opponent scouting',match?'<p><strong>'+e(match.opponentName)+'</strong> · '+e(match.opponentClass)+'A · '+(match.home?'Home':'Away')+'</p><p>Team strength '+Math.round(match.opponentStrength||0)+' · Offense '+Math.round(match.opponentOffense??match.opponentStrength??0)+' · Defense '+Math.round(match.opponentDefense??match.opponentStrength??0)+'</p>':'<p>No game currently scheduled.</p>');
+}
+function v6Opportunity(){
+ const ev=game.scheduledEvent,n=game.stage==='nfl'?v6League():null,c=game.college;
+ if(ev)return v6Modal(ev.title,'<p>'+e(ev.body)+'</p><div class="v6-dialog-choices">'+ev.choices.map((choice,i)=>v6Button(e(choice[0]),'v6PickEvent('+i+')','v6-stroked')).join('')+'</div>');
+ const story=n?.news?.[0]||c?.news?.[0];
+ v6Modal('Opportunity / News','<p>'+e(story?.title||'No urgent decision this week')+'</p><p>'+e(story?.body||'Choose your next action from the Hub or Development screen.')+'</p>');
+}
+function v6PickEvent(i){v6CloseModal();chooseEvent(i)}
 function v6Team(){const n=game.stage==='nfl'?v6League():null,c=game.college,hs=!n&&!(game.stage==='college'||game.stage==='collegeComplete');const name=v6TeamName(),scheme=v6CurrentScheme();let role=n?n.rosterStatus:hs?depth().level+' · '+depth().role:collegeDepth().role,record=n?n.record:hs?currentRecord():c.record;
  return '<div class="v6-overview"><h2>Team</h2><div class="v6-surface"><h3>'+e(name)+'</h3><div class="v6-triplet"><div><small>Record</small><strong>'+e(record?.join('–')||'0–0')+'</strong></div><div><small>Position</small><strong>'+e(game.pos)+'</strong></div><div><small>Role</small><strong>'+e(role)+'</strong></div></div></div><div class="v6-surface"><strong>Coach & Scheme</strong><p>'+e(scheme)+' · Scheme knowledge '+Math.round(v6LearnedScheme(scheme))+' · Fit '+v6SchemeFit(scheme)+'</p><p class="v6-note">Your team playbook: '+Math.round(v6Playbook().knowledge)+' / 99</p></div><div class="v6-fourbuttons">'+v6Button('Depth Chart',n?'v6Change(\'Career\',\'Pro Roster\')':'v6GoOld(\'team\')','v6-stroked')+v6Button('Schedule',n?'v6Change(\'Career\',\'Schedule\')':hs?'v6GoOld(\'career\')':'v6GoOld(\'college\')','v6-stroked')+v6Button('Coach',hs?'v6GoOld(\'team\')':n?'v6Change(\'Career\',\'Pro Roster\')':'v6GoOld(\'college\')','v6-stroked')+v6Button('Scheme Fit','v6Skill(\'Schemes\')','v6-stroked')+'</div></div>';
 }
