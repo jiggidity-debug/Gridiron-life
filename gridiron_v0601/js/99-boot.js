@@ -1,0 +1,3 @@
+/* v0.5 boot: load its own slot; v0.4 is left intact as rollback backup. */
+try{let d=JSON.parse(localStorage.getItem(KEY));if(d&&[5,6].includes(d.version)){game=d;schools=d.schools||schools;if(!d.squadRecords||!d.schedule)repairSeasonData()}}catch(err){console.warn(err)}
+migrate();if(game){healthState();competitionState();awardsState();summerState();profileState();migrateCollegeStage();persist()}render();
