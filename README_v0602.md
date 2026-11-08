@@ -12,3 +12,10 @@ Built from v0.601 NPC Profiles and Academics.
 ## v0.602 calculation order correction
 
 Final rating = min(99, baseline + manually allocated points + middle-school history bonus + family bonus). Athletic and Technical allocation is limited by baseline + manually allocated points <= 70, with the existing shared 300-point budget. Personal ratings still have no baseline or external bonuses. Changing family or middle-school history no longer refunds manually allocated points (unless a size baseline change lowers pre-bonus allocation headroom).
+
+## v0.602 Baseline balancing update
+
+- Halved **all non-Personal character-creation attribute baselines**, rounded to the nearest integer. This includes Athletic, Technical, Football Intelligence and weight-derived Speed/Strength baselines.
+- Example at 200–219 lb: Speed baseline **44 → 22**; Strength minimum **25 → 13**. Under 160 lb: Speed **45 → 23**, Strength **10 → 5**.
+- Kept **300 points** total, **70 pre-bonus attribute allocation cap**, unchanged family and middle-school bonuses added **after** allocation, and Personal baselines of zero.
+- Affects new character creation only; existing save ratings are unchanged.
