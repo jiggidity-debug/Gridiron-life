@@ -21,13 +21,6 @@ function v601UpdateAcademics(){
   a.weeks=(a.weeks||0)+1;
  }
 }
-const v601PriorApplyWeek=applyWeek;
-applyWeek=function(){v601UpdateAcademics();return v601PriorApplyWeek()};
-const v601PriorYear=startNextSchoolYear;
-startNextSchoolYear=function(){
- if(game?.team)for(const npc of game.team){const a=v601Academic(npc);if(!a.history)a.history=[];if(!a.history.some(h=>h.grade===npc.grade))a.history.push({grade:npc.grade,gpa:a.gpa});}
- return v601PriorYear();
-};
 function v601OpenPlayer(id){
  if(!game)return;
  if(id==='you'){v6Change('Player');return;}

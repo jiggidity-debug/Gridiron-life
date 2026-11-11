@@ -52,7 +52,7 @@ function schoolChoiceRow(){
 function requestPositionChange(pos){
  if(!game||!POSITION_FAMILIES[pos]||game.pos===pos)return;
  if(game.gamePending||game.scheduledEvent){feedback='Finish the current game or decision before changing positions.';render();return;}
- const old=game.pos;game.pos=pos;game.focus={};GROUPS[pos].forEach(g=>game.focus[g[0]]=0);
+ const old=game.pos;game.pos=pos;game.focus={};trainingGroups(pos).forEach(g=>game.focus[g[0]]=0);
  if(game.college)game.college.position=pos;
  if(typeof assignRoster==='function')try{assignRoster();}catch(_e){}
  if(typeof evaluatePlacement==='function')try{evaluatePlacement();}catch(_e){}
@@ -149,7 +149,7 @@ function showBudget(){ return 0; }
 function setupScreen(){ return typeof window.part9CreatorHtml==='function'
   ? window.part9CreatorHtml() : '<section class="panel">Loading character creation…</section>'; }
 
-function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.7.1 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
+function commonHeader(){let d=depth(),ph=PHASES[game.phase];return '<div class="bar"><div><div class="logo">GRIDIRON LIFE</div><small>v0.7.2 · '+e(ph.name)+' · Year '+game.year+' · Week '+game.week+'</small></div><span class="chip">'+game.grade+'th grade · '+d.level+' '+d.role+'</span></div><h1>'+e(game.name)+' <span class="muted">· '+game.pos+'</span></h1><div class="stats">'+stat('OVR',rating(game.attrs,game.pos))+stat('Morale',Math.round(game.morale))+stat('Fatigue',Math.round(game.fatigue)+'%')+stat('Career wear',healthState().wear.toFixed(1)+'%')+stat('GPA',game.gpa.toFixed(2))+'</div><div class="tabs">'+[['home','Home'],['career','Career'],['profile','Player Profile'],['team','Team'],['develop','Development'],['life','Life'],['summer','Offseason'],['recruiting','Recruiting'],['history','History']].map(t=>'<button class="'+(tab===t[0]?'active':'')+'" onclick="tab=\''+t[0]+'\';render()">'+t[1]+'</button>').join('')+'</div>'+(feedback?'<div class="notice">'+e(feedback)+'</div>':'')}
 
 function healthPanel(compact=false){
   const h=healthState(),last=h.weekReports[0];
@@ -247,7 +247,14 @@ function teamScreen(){
     +panel('Program alumni','<strong>'+game.alumni.length+' graduated players</strong><p class="muted">Graduates are removed from active rosters and kept in school history.</p>'+(game.alumni.length?game.alumni.slice(-12).reverse().map(x=>'<div class="log">'+e(x.name)+' · '+e(x.pos)+' · '+x.ovr+' OVR · Finished Year '+x.graduatedAfterYear+'</div>').join(''):'No graduating class yet.'))+schoolTransferScreen();
 }
 
-function developScreen(){let ph=PHASES[game.phase];return panel('Weekly availability','<p>Everyone has the same '+ph.capacity+' discretionary hours in '+e(ph.name)+'. Commitments use those hours; morale changes efficiency, not the number of hours.</p><div class="line"><strong>'+allHours()+' / '+hoursCap()+' hours allocated</strong><span class="accent">'+(hoursCap()-allHours())+'h free</span></div>'+Object.entries({training:'Extra training',study:'Studying',work:'Flexible gigs / work',social:'Socializing',recovery:'Dedicated recovery'}).map(([k,label])=>rang(label,game.plan[k],0,hoursCap(),'alloc(\''+k+'\',+this.value)','h')).join('')+(game.job?'<p class="muted">Recurring employment automatically reserves '+game.job.hours+' additional hours weekly.</p>':'')+(sevensWeeklyHours()?'<p class="muted">Seven-on-seven reserves another 4 hours every week while this circuit is active.</p>':'') )+panel('Team practice','<p>Mandatory '+ph.teamHours+' hours/week. '+e(game.school.coach)+' chooses the drills; you choose your effort.</p>'+rang('Team practice intensity',game.teamIntensity,0,4,'setIntensity(\'teamIntensity\',+this.value)')+'<small>0 Coasting · 1 Light · 2 Standard · 3 High · 4 Maximum</small>')+panel('Individual training · '+game.plan.training+' hours','<p>Allocate your training-hours pool across skills. You can work on multiple skills every week.</p><div class="line"><strong>'+focusTotal()+' / '+game.plan.training+' assigned</strong><small>Unused hours provide no extra training</small></div>'+GROUPS[game.pos].map(g=>rang(g[1]+' ('+g[2].map(k=>k==='endurance'?'stamina':k).join(', ')+')',game.focus[g[0]],0,game.plan.training,'setFocus(\''+g[0]+'\',+this.value)','h')).join('')+'<hr>'+rang('Extra training intensity',game.extraIntensity,0,4,'setIntensity(\'extraIntensity\',+this.value)')+'<small>0 Minimal · 1 Light · 2 Moderate · 3 High · 4 Extreme</small><p class="muted">School coaching, morale, intelligence, accumulated fatigue and recovery affect efficiency. Development is applied automatically each simulated week; there are no skill points.</p>')+panel('Player attributes','<div class="grid">'+ATTRS.map(k=>'<div class="tile"><small>'+e(k)+'</small><div class="line"><strong>'+game.attrs[k]+'</strong><small>'+Math.round((game.progress[k]||0)/12*100)+'% to next</small></div><div class="meter"><i style="width:'+Math.min(100,(game.progress[k]||0)/12*100)+'%"></i></div></div>').join('')+'</div>')+healthPanel();}
+// Position-aware attribute display: physical attributes and technical skills are listed separately.
+function skillTile(k,withProgress){const v=skillValue(k),p=Number(game.progress?.[k])||0;return '<div class="tile"><small>'+e(skillLabel(k))+'</small><div class="line"><strong>'+v+'</strong>'+(withProgress?'<small>'+Math.round(p/12*100)+'% to next</small>':'')+'</div>'+(withProgress?'<div class="meter"><i style="width:'+Math.min(100,p/12*100)+'%"></i></div>':'')+'</div>'}
+function playerSkillPanelHtml(withProgress){
+ const keys=trainingSkillKeys(),rest=[...PHYSICAL_ATTRIBUTES,...TECHNICAL_SKILLS].filter(k=>!keys.includes(k));
+ const tiles=list=>'<div class="grid">'+list.map(k=>skillTile(k,withProgress)).join('')+'</div>';
+ return '<h4>Physical attributes</h4>'+tiles(keys.filter(isPhysicalKey))+'<h4>Technical skills</h4>'+tiles(keys.filter(k=>!isPhysicalKey(k)))+'<details><summary>Other skills</summary>'+tiles(rest)+'</details><p class="muted">Scheme knowledge and technique levels are tracked separately under Development.</p>';
+}
+function developScreen(){let ph=PHASES[game.phase];return panel('Weekly availability','<p>Everyone has the same '+ph.capacity+' discretionary hours in '+e(ph.name)+'. Commitments use those hours; morale changes efficiency, not the number of hours.</p><div class="line"><strong>'+allHours()+' / '+hoursCap()+' hours allocated</strong><span class="accent">'+(hoursCap()-allHours())+'h free</span></div>'+Object.entries({training:'Extra training',study:'Studying',work:'Flexible gigs / work',social:'Socializing',recovery:'Dedicated recovery'}).map(([k,label])=>rang(label,game.plan[k],0,hoursCap(),'alloc(\''+k+'\',+this.value)','h')).join('')+(game.job?'<p class="muted">Recurring employment automatically reserves '+game.job.hours+' additional hours weekly.</p>':'')+(sevensWeeklyHours()?'<p class="muted">Seven-on-seven reserves another 4 hours every week while this circuit is active.</p>':'') )+panel('Team practice','<p>Mandatory '+ph.teamHours+' hours/week. '+e(game.school.coach)+' chooses the drills; you choose your effort.</p>'+rang('Team practice intensity',game.teamIntensity,0,4,'setIntensity(\'teamIntensity\',+this.value)')+'<small>0 Coasting · 1 Light · 2 Standard · 3 High · 4 Maximum</small>')+panel('Individual training · '+game.plan.training+' hours','<p>Allocate your training-hours pool across skills. You can work on multiple skills every week.</p><div class="line"><strong>'+focusTotal()+' / '+game.plan.training+' assigned</strong><small>Unused hours provide no extra training</small></div>'+trainingGroups().map(g=>rang(g[1]+' ('+g[2].map(skillLabel).join(', ')+')',game.focus[g[0]],0,game.plan.training,'setFocus(\''+g[0]+'\',+this.value)','h')).join('')+'<hr>'+rang('Extra training intensity',game.extraIntensity,0,4,'setIntensity(\'extraIntensity\',+this.value)')+'<small>0 Minimal · 1 Light · 2 Moderate · 3 High · 4 Extreme</small><p class="muted">School coaching, morale, intelligence, accumulated fatigue and recovery affect efficiency. Development is applied automatically each simulated week; there are no skill points.</p>')+panel('Player attributes',playerSkillPanelHtml(true))+healthPanel();}
 
 function equipmentEffectsPanel(){
  const owned=Boolean(game.gearProtection||game.purchases?.gear);
@@ -358,13 +365,10 @@ function collegeHomeScreen(){const c=collegeState();return panel('College dashbo
 // College uses the same major sections as high school; sport/level content differs.
 function collegeDevelopmentScreen(){
  const c=collegeState();if(!c)return '';
- const attributes=ATTRS.map(k=>'<div class="tile"><small>'+e(k)+'</small><div class="line"><strong>'+game.attrs[k]+'</strong><small>'+Math.round((game.progress[k]||0)/12*100)+'% next</small></div></div>').join('');
  const hourControls=['training','study','recovery'].map(k=>'<div class="line"><strong>'+e(k[0].toUpperCase()+k.slice(1))+'</strong><span>'+c.weeklyPlan[k]+' hours</span></div><input aria-label="College '+e(k)+' hours" type="range" min="0" max="20" value="'+c.weeklyPlan[k]+'" oninput="collegeSetPlan(\''+k+'\',this.value)">').join('');
- const groupTotal=GROUPS[game.pos].length;
- const focus=GROUPS[game.pos].map(g=>'<div class="line"><span>'+e(g[1])+' · '+e(g[2].map(k=>k==='endurance'?'stamina':k).join(', '))+'</span><strong>'+Number(game.focus[g[0]]||0)+'h</strong></div>').join('');
- return panel('Player attributes · '+rating(game.attrs,game.pos)+' OVR','<p>These are your continuing high school attributes—not a separate college rating system.</p><div class="grid">'+attributes+'</div>')+
+ return panel('Player attributes · '+rating(game.attrs,game.pos)+' OVR','<p>The same physical attributes and technical skills you built in high school continue to develop in college.</p>'+playerSkillPanelHtml(true))+
  panel('College weekly availability','<p>'+Object.values(c.weeklyPlan).reduce((a,b)=>a+b,0)+' / 40 discretionary hours allocated. Your next college game applies these commitments.</p>'+hourControls+'<p class="muted">College coaching and facilities affect development. Fatigue, injury and recovery still matter.</p>')+
- panel('Training focus','<p>Existing training focus carries into college. Change the allocation with the controls below.</p>'+GROUPS[game.pos].map(g=>'<div class="line"><label>'+e(g[1])+'</label><strong>'+Number(game.focus[g[0]]||0)+'h</strong></div><input aria-label="'+e(g[1])+' focus" type="range" min="0" max="20" value="'+Number(game.focus[g[0]]||0)+'" oninput="collegeSetFocus(\''+g[0]+'\',this.value)">').join('')+'<p class="muted">Training focus hours are distributed within your college training allocation.</p>')+
+ panel('Training focus','<p>Existing training focus carries into college. Change the allocation with the controls below.</p>'+trainingGroups().map(g=>'<div class="line"><label>'+e(g[1])+' · '+e(g[2].map(skillLabel).join(', '))+'</label><strong>'+Number(game.focus[g[0]]||0)+'h</strong></div><input aria-label="'+e(g[1])+' focus" type="range" min="0" max="20" value="'+Number(game.focus[g[0]]||0)+'" oninput="collegeSetFocus(\''+g[0]+'\',this.value)">').join('')+'<p class="muted">Training focus hours are distributed within your college training allocation.</p>')+
  panel('Condition and recovery','<div class="grid">'+stat('Fatigue',Math.round(game.fatigue)+'/100')+stat('Long-term wear',Math.round(healthState().wear)+'/100')+stat('Stress',Math.round(game.stress)+'/100')+stat('Injury',game.injury?game.injury.name:'None')+'</div>');
 }
 function collegeLifeScreen(){
@@ -375,24 +379,24 @@ function collegeLifeScreen(){
 }
 function collegeProfileScreen(){
  const c=collegeState(),stats=collegePlayerRecord();if(!c)return '';
- return collegeProfilePanel()+panel('College scouting and attributes','<p>'+e(game.pos)+' · '+rating(game.attrs,game.pos)+' overall · '+e(c.program.name)+' · College Year '+c.year+'</p><div class="grid">'+ATTRS.map(k=>'<div class="tile"><small>'+e(k)+'</small><strong>'+game.attrs[k]+'</strong></div>').join('')+'</div>')+
+ return collegeProfilePanel()+panel('College scouting and attributes','<p>'+e(game.pos)+' · '+rating(game.attrs,game.pos)+' overall · '+e(c.program.name)+' · College Year '+c.year+'</p>'+playerSkillPanelHtml(false))+
  panel('College game statistics','<p>'+e(profileStatLine(stats,game.pos))+'</p>'+c.games.slice(0,16).map(g=>'<div class="line"><span>Year '+g.year+' · W'+g.week+' · '+e(g.opponentName)+'</span><strong>'+(g.win?'W':'L')+' '+g.score+'–'+g.opp+'</strong></div>').join(''))+
  panel('High school career archive','<p>Previously attended '+e(game.school.name)+'. High school results remain accessible in History, without replacing your college identity.</p><button class="alt" onclick="tab=\'history\';render()">View high school history</button>');
 }
 function collegeSetFocus(key,val){
- const c=collegeState();if(!c||!GROUPS[game.pos].some(g=>g[0]===key))return;
+ const c=collegeState();if(!c||!trainingGroups().some(g=>g[0]===key))return;
  const current=game.focus[key]||0,requested=cl(Math.round(+val||0),0,20);
- const spent=GROUPS[game.pos].reduce((a,g)=>a+(g[0]===key?0:Number(game.focus[g[0]]||0)),0);
+ const spent=trainingGroups().reduce((a,g)=>a+(g[0]===key?0:Number(game.focus[g[0]]||0)),0);
  game.focus[key]=Math.min(requested,Math.max(0,c.weeklyPlan.training-spent));
  if(requested!==game.focus[key])feedback='Reduce other training focuses before adding more hours.';
  persist();render();
 }
 function render(){
  let el=document.getElementById('app');if(!game){el.innerHTML=setupScreen();showBudget();return}
- const footer='<footer>Gridiron Life v0.7.1 · Offline, fictional football universe · Saved locally · College simulation and eligibility are simplified.</footer>';
+ const footer='<footer>Gridiron Life v0.7.2 · Offline, fictional football universe · Saved locally · College simulation and eligibility are simplified.</footer>';
  if(game.stage==='recruiting'){
    const nav='<div class="tabs"><button class="'+(tab==='home'?'active':'alt')+'" onclick="tab=\'home\';render()">Home</button><button class="'+(tab==='recruiting'?'active':'alt')+'" onclick="tab=\'recruiting\';render()">Recruiting & Signing</button><button class="alt" onclick="tab=\'profile\';render()">High School Profile</button><button class="alt" onclick="tab=\'history\';render()">History & Save</button></div>';
-   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.7.1 · Graduate</span></div><h1>'+e(game.name)+' · College recruitment</h1>'+nav+(tab==='home'?recruitmentHomeScreen():tab==='profile'?profileScreen():tab==='history'?historyScreen():recruitingScreen())+footer;return;
+   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.7.2 · Graduate</span></div><h1>'+e(game.name)+' · College recruitment</h1>'+nav+(tab==='home'?recruitmentHomeScreen():tab==='profile'?profileScreen():tab==='history'?historyScreen():recruitingScreen())+footer;return;
  }
  if(game.stage==='college'||game.stage==='collegeComplete'){
    const c=collegeState();
@@ -400,7 +404,7 @@ function render(){
    if(!pages.some(x=>x[0]===tab))tab='home';
    const nav='<div class="tabs">'+pages.map(([id,title])=>'<button class="'+(tab===id?'active':'alt')+'" onclick="tab=\''+id+'\';render()">'+title+'</button>').join('')+'</div>';
    const views={home:collegeHomeScreen,team:collegeScreen,develop:collegeDevelopmentScreen,life:collegeLifeScreen,profile:collegeProfileScreen,college:collegeScreen,history:historyScreen};
-   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.7.1 · College Year '+c.year+'</span></div><h1>'+e(game.name)+' · '+e(game.pos)+' · '+e(c.program.name)+'</h1>'+nav+(feedback?'<p class="notice">'+e(feedback)+'</p>':'')+views[tab]()+footer;return;
+   el.innerHTML='<div class="bar"><div class="logo">GRIDIRON LIFE</div><span class="chip">v0.7.2 · College Year '+c.year+'</span></div><h1>'+e(game.name)+' · '+e(game.pos)+' · '+e(c.program.name)+'</h1>'+nav+(feedback?'<p class="notice">'+e(feedback)+'</p>':'')+views[tab]()+footer;return;
  }
  let content={home:homeScreen,career:careerScreen,profile:profileScreen,team:teamScreen,develop:developScreen,life:lifeScreen,summer:summerScreen,recruiting:recruitingScreen,history:historyScreen};
  el.innerHTML=commonHeader()+content[tab]()+footer;

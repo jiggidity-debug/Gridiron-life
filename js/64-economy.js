@@ -34,8 +34,8 @@ function buyItem(id){
     case 'social':game.morale=cl(game.morale+4,0,100);game.stress=cl(game.stress-3,0,100);adjustRelationship('teammate',3);break;
     case 'family':adjustRelationship('family',4);game.familyExpect=cl(game.familyExpect-2,0,100);break;
     case 'clinic':{
-      const choice=GROUPS[game.pos].slice().sort((a,b)=>((game.focus[b[0]]||0)-(game.focus[a[0]]||0)))[0];
-      for(const k of choice[2])game.progress[k]=(game.progress[k]||0)+3;
+      const choice=trainingGroups().slice().sort((a,b)=>((game.focus[b[0]]||0)-(game.focus[a[0]]||0)))[0];
+      for(const k of choice[2])awardProgress(k,3);
       game.morale=cl(game.morale+1,0,100);break;
     }
   }

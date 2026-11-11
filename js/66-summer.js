@@ -18,7 +18,7 @@ function summerState(){
   if(!Array.isArray(s.activityHistory))s.activityHistory=[];
   if(!Number.isFinite(s.exposure))s.exposure=0;
   if(!Number.isFinite(s.fieldWorkloadThisWeek))s.fieldWorkloadThisWeek=0;
-  if(!GROUPS[game.pos].some(g=>g[0]===s.focus))s.focus=GROUPS[game.pos][0][0];
+  if(!trainingGroups().some(g=>g[0]===s.focus))s.focus=trainingGroups()[0][0];
   return s;
 }
 function circuitKey(){return game.year+':'+game.phase}
@@ -30,7 +30,7 @@ function activeCircuit(){
 function sevensWeeklyHours(){return game&&activeCircuit()?SEVENS_HOURS:0}
 function sevensAvailable(){return game&&!game.finished&&(game.phase===2||game.phase===3)}
 function chooseCampFocus(group){
-  const s=summerState();if(GROUPS[game.pos].some(g=>g[0]===group)){s.focus=group;persist();render()}
+  const s=summerState();if(trainingGroups().some(g=>g[0]===group)){s.focus=group;persist();render()}
 }
 function addSummerHistory(message){
   const s=summerState();s.activityHistory.unshift({year:game.year,phase:PHASES[game.phase].name,week:game.week,message});
@@ -60,11 +60,11 @@ function checkSummerInvitation(){
 }
 function addFieldLoad(load){summerState().fieldWorkloadThisWeek+=load}
 function position7v7Skill(){
- const a=game.attrs;
- return game.pos==='QB'?a.accuracy*.46+a.awareness*.30+a.arm*.24:
-   game.pos==='RB'?a.catching*.47+a.elusiveness*.28+a.routes*.10+a.speed*.15:
-   game.pos==='TE'?a.catching*.44+a.routes*.24+a.release*.10+a.power*.22:
-   a.catching*.40+a.routes*.29+a.release*.16+a.speed*.15;
+ const v=skillValue;
+ return game.pos==='QB'?v('shortAccuracy')*.46+v('decisionMaking')*.30+v('throwPower')*.24:
+   game.pos==='RB'?v('catching')*.47+v('elusiveness')*.28+v('routes')*.10+v('speed')*.15:
+   game.pos==='TE'?v('catching')*.44+v('routes')*.24+v('release')*.10+v('strength')*.22:
+   v('catching')*.40+v('routes')*.29+v('release')*.16+v('speed')*.15;
 }
 function simulateSevenOnSevenWeek(){
   const c=activeCircuit();if(!c)return null;
@@ -99,8 +99,8 @@ function simulateSevenOnSevenWeek(){
     if(win){summerState().exposure=cl(summerState().exposure+6,0,100);profileMilestone('seven-title-'+c.key,'Seven-on-seven regional championship','Won the regional seven-on-seven title in Year '+game.year+'.',{snapshot:true});if(typeof earnHonor==='function')earnHonor('7v7-champion','Seven-on-Seven Regional Champion','camp','7v7|'+c.key,'Won the regional final in seven-on-seven competition.');}}
   const gain=game.injury?0:cl(Math.round(impact/10),1,3);
   // Seven-on-seven provides specific passing/receiving skill experience, not rushing production.
-  const keys=game.pos==='QB'?['accuracy','awareness']:game.pos==='RB'?['catching','elusiveness']:game.pos==='TE'?['catching','routes']:['catching','routes'];
-  if(!game.injury)for(const key of keys)game.progress[key]=(game.progress[key]||0)+gain*(key===keys[0]?1:.6);
+  const keys=game.pos==='QB'?['shortAccuracy','decisionMaking']:game.pos==='RB'?['catching','elusiveness']:['catching','routes'];
+  if(!game.injury)for(const key of keys)awardProgress(key,gain*(key===keys[0]?1:.6));
   if(!game.injury)addFieldLoad(1.5);
   const exposureGain=game.injury?0:cl(Math.round(impact/9)+(win?1:0),0,5);
   summerState().exposure=cl(summerState().exposure+exposureGain,0,100);
@@ -112,11 +112,11 @@ function simulateSevenOnSevenWeek(){
   persist();return report;
 }
 function campEvaluation(){
- const a=game.attrs,g=GROUPS[game.pos].find(x=>x[0]===summerState().focus),base=(a[g[2][0]]+a[g[2][1]])/2;
+ const g=trainingGroups().find(x=>x[0]===summerState().focus),base=g[2].reduce((sum,k)=>sum+skillValue(k),0)/g[2].length;
  return cl(Math.round(base*.70+position7v7Skill()*.30+R(-5,5)),0,99);
 }
 function combineMeasurements(){
- const a=game.attrs;
+ const a={speed:skillValue('speed'),accel:skillValue('accel'),agility:skillValue('agility'),power:skillValue('strength')};
  const forty=cl(6.25-(a.speed-30)*.022-(a.accel-30)*.004+R(-7,7)/100,4.30,6.50);
  const shuttle=cl(5.70-(a.agility-30)*.017-(a.accel-30)*.004+R(-7,7)/100,3.70,6.10);
  const vertical=cl(16+(a.power-30)*.23+(a.agility-30)*.07+R(-10,10)/10,13,43);
@@ -136,11 +136,11 @@ function attendCamp(id){
  game.money-=cost;game.activityHoursThisWeek=(game.activityHoursThisWeek||0)+camp.hours;
  if(cost&&typeof ledgerEntry==='function')ledgerEntry('expense',cost,camp.name+(discount?' (transport discount)':''));
  const evaluation=campEvaluation(),measurements=id==='combine'?combineMeasurements():null;
- const focus=GROUPS[game.pos].find(x=>x[0]===s.focus);
+ const focus=trainingGroups().find(x=>x[0]===s.focus);
  if(camp.progress){
    const quality=cl(.6+evaluation/140,.65,1.35),gains=focus[2].map((key,i)=>{
       const add=camp.progress*quality*(i===0?1:.65);
-      game.progress[key]=(game.progress[key]||0)+add;
+      awardProgress(key,add);
       return `${key} +${add.toFixed(1)} progress`;
    });
  }
@@ -170,11 +170,11 @@ function sevenOnSevenPanel(){
 }
 function summerCampPanel(){
  const s=summerState(),availableHours=hoursCap()-allHours();
- const focusOptions=GROUPS[game.pos].map(g=>'<option value="'+e(g[0])+'" '+(g[0]===s.focus?'selected':'')+'>'+e(g[1])+'</option>').join('');
+ const focusOptions=trainingGroups().map(g=>'<option value="'+e(g[0])+'" '+(g[0]===s.focus?'selected':'')+'>'+e(g[1])+'</option>').join('');
  const cards=CAMP_OPTIONS.map(c=>{
    const attended=s.camps.some(x=>x.key===game.year+':'+c.id),validPhase=c.phase.includes(game.phase),gradeOk=game.grade>=c.minGrade,inviteOk=!c.invite||eliteInvited();
    const cost=c.cost-(game.transportWeeks>0&&c.cost>0?Math.min(10,c.cost):0);
-   return '<div class="tile store"><div><strong>'+e(c.name)+'</strong><p class="muted">'+e(c.description)+'</p><small>$'+cost+' · '+c.hours+' hours · Grade '+c.minGrade+'+ · '+(c.id==='combine'?'Measured testing':'Focus '+e(GROUPS[game.pos].find(g=>g[0]===s.focus)[1]))+'</small></div><button class="alt" '+(attended||!validPhase||!gradeOk||!inviteOk||game.injury||game.finished?'disabled':'')+' onclick="attendCamp(\''+c.id+'\')">'+(attended?'Attended':!validPhase?'Unavailable this phase':!gradeOk?'Grade '+c.minGrade+' required':!inviteOk?'Invitation required':'Attend')+'</button></div>';
+   return '<div class="tile store"><div><strong>'+e(c.name)+'</strong><p class="muted">'+e(c.description)+'</p><small>$'+cost+' · '+c.hours+' hours · Grade '+c.minGrade+'+ · '+(c.id==='combine'?'Measured testing':'Focus '+e(trainingGroups().find(g=>g[0]===s.focus)[1]))+'</small></div><button class="alt" '+(attended||!validPhase||!gradeOk||!inviteOk||game.injury||game.finished?'disabled':'')+' onclick="attendCamp(\''+c.id+'\')">'+(attended?'Attended':!validPhase?'Unavailable this phase':!gradeOk?'Grade '+c.minGrade+' required':!inviteOk?'Invitation required':'Attend')+'</button></div>';
  }).join('');
  const latest=s.camps.slice(0,6).map(x=>'<div class="log"><strong>'+e(x.name)+'</strong><br><small>Year '+x.year+' · '+e(PHASES[x.phase].name)+' W'+x.week+' · $'+x.cost+' · '+x.hours+'h · evaluation '+x.evaluation+'/99 · exposure +'+x.exposureGain+(x.measurements?` · 40 yd ${x.measurements.forty}s · shuttle ${x.measurements.shuttle}s · vertical ${x.measurements.vertical} in`:'')+'</small></div>').join('');
  return panel('Skills camps, showcases & combines',

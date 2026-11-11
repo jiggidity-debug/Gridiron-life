@@ -31,7 +31,7 @@ function growthHSWeek(){
  const h=Math.min(remainingHeight,Math.floor(y.annualHeight*now/45)-y.appliedHeight);
  if(h>0){game.height+=h;y.appliedHeight+=h;growthRecord('Physical growth','Grew '+h+' inch'+(h===1?'':'es')+' during grade '+game.grade+'. Current height '+Math.floor(game.height/12)+' ft '+game.height%12+' in.')}
  const w=Math.min(remainingWeight,Math.max(0,Math.floor(y.annualWeight*now/45)-y.appliedWeight));
- if(w>0){game.weight+=w;y.appliedWeight+=w; if(game.athleticAttributes)game.athleticAttributes.strength=cl((game.athleticAttributes.strength||25)+Math.floor((y.appliedWeight)/5)-Math.floor((y.appliedWeight-w)/5),0,99);if(game.attrs)game.attrs.power=cl((game.attrs.power||25)+Math.floor(y.appliedWeight/5)-Math.floor((y.appliedWeight-w)/5),0,99)}
+ if(w>0){game.weight+=w;y.appliedWeight+=w; setSkillValue('strength',skillValue('strength')+Math.floor(y.appliedWeight/5)-Math.floor((y.appliedWeight-w)/5));syncLegacyAttrs()}
 }
 function growthCollegeTarget(){const f=POSITION_FAMILIES[game.pos]||'RB';const defaults={OL:295,DL:275,LB:235,RB:210,WR:195,TE:255,QB:220,DB:195,ST:205};return Math.max(game.weight,defaults[f]||220)}
 function growthCollegeYear(){const g=growthState(),college=game.college;if(!college)return null;const y=String(college.year);
@@ -52,7 +52,7 @@ function growthCollegeWeek(){
 function growthBodyStats(pounds,plan){
  const g=growthState();g.strengthRemainder=(g.strengthRemainder||0)+pounds/(plan==='Athletic'?9:7);
  const gain=Math.floor(g.strengthRemainder);g.strengthRemainder-=gain;
- if(gain){game.attrs.power=cl((game.attrs.power||25)+gain,0,99);if(game.athleticAttributes)game.athleticAttributes.strength=cl((game.athleticAttributes.strength||25)+gain,0,99)}
+ if(gain){setSkillValue('strength',skillValue('strength')+gain);syncLegacyAttrs()}
 }
 function growthCollegeOffseason(){
  const g=growthState(),y=growthCollegeYear();if(y.offseasonDone)return;y.offseasonDone=true;
@@ -61,7 +61,7 @@ function growthCollegeOffseason(){
  desired=Math.min(desired,needs);
  if(!desired)return;
  game.weight+=desired;y.applied+=desired;growthBodyStats(desired,g.collegePlan);
- if(g.collegePlan==='Bulking'&&y.applied>=25){game.attrs.agility=cl((game.attrs.agility||40)-1,0,99);if(game.athleticAttributes)game.athleticAttributes.agility=cl((game.athleticAttributes.agility||40)-1,0,99)}
+ if(g.collegePlan==='Bulking'&&y.applied>=25){setSkillValue('agility',skillValue('agility')-1);syncLegacyAttrs()}
  growthRecord('College body development','Nutrition and strength program ('+g.collegePlan+'): +'+desired+' lb in the offseason; current playing weight '+game.weight+' lb.');
 }
 function growthChoosePlan(plan){if(!['Balanced','Bulking','Athletic'].includes(plan))return;growthState().collegePlan=plan;feedback='Body development plan: '+plan+'.';persist();render()}
@@ -71,8 +71,6 @@ function growthDevelopmentPanel(){const g=growthState(),isCollege=game.stage==='
  return '<div class="v6-surface v61-body"><strong>Physical Maturity</strong><p>Height <strong>'+Math.floor(game.height/12)+'′'+game.height%12+'″</strong> · Weight <strong>'+game.weight+' lb</strong> · Development <strong>'+e(game.physicalType||'average')+'</strong></p><p class="v6-note">Mid-parental reference: '+Math.floor(g.midParentalHeight/12)+'′'+g.midParentalHeight%12+'″. Individual potential estimate: '+foot+'. Height and weight change over school weeks, not instantly on grade advancement.</p></div>';
 }
 // Engine hooks run after the original weekly simulator; once-per-week safeguards prevent duplicate changes.
-const v61OldApplyWeek=applyWeek;
-applyWeek=function(){if(game)growthHSWeek();return v61OldApplyWeek()};
 const v61OldCollegeAdvance=collegeAdvancePlayerWeek;
 collegeAdvancePlayerWeek=function(result,role){v61OldCollegeAdvance(result,role);growthCollegeWeek()};
 const v61OldCollegeNextYear=collegeNextYear;

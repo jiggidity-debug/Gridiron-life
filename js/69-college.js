@@ -254,7 +254,7 @@ function collegePossessionGame(role,opp,forceOut=false){
  const ourScore=simulate(true),theirScore=simulate(false);
  if(active&&DEFENSIVE_POSITIONS.includes(game.pos)){
    stats.defSnaps=Math.round(R(43,68)*share);
-   stats.tackles=Math.round(stats.defSnaps*cl(.075+((game.attrs.vision||38)-45)/720,.035,.17));
+   stats.tackles=Math.round(stats.defSnaps*cl(.075+(skillValue('tackling')-45)/720,.035,.17));
    stats.tfl=Math.round(stats.tackles*.17);
    stats.sacks=['DE','DT','NT','OLB','ILB','MLB'].includes(game.pos)?Math.round(stats.defSnaps*.021):0;
    stats.passDef=['CB','FS','SS','OLB'].includes(game.pos)?Math.round(stats.defSnaps*.035):0;
@@ -394,21 +394,8 @@ function collegeAdvancePlayerWeek(result,role){
   const risk=cl((.001+peak*.00019+contacts*.00027+h.wear*.00013)*(game.gearProtection?.75:1),0,.06);
   if(Math.random()<risk){const name=pick(['Ankle sprain','Shoulder sprain','Hamstring strain','Wrist sprain']);game.injury={name,weeks:R(1,3),severity:1};h.injuryHistory.unshift({name,year:'College '+c.year,phase:'College',week:result.week,weeks:game.injury.weeks});c.news.unshift({year:c.year,week:result.week,title:game.name+' sidelined by injury',body:'Injury: '+name+'. Current medical absence '+game.injury.weeks+' week(s).'});}
  }
- // Same development threshold as high school (12 progress per attribute point).
- // College coaching/facilities matter; no arbitrary ability cap below 99.
- const efficiency=cl(.65+game.iq/180+game.morale/250-game.stress/380-game.fatigue/370,.4,1.5)*(game.injury?.38:1);
- const base=5.2*(c.program.coaching/65)*(c.program.facilities/70);
- const extra=plan.training*(.30+game.extraIntensity*.16);
- const logs=[];
- for(const group of GROUPS[game.pos]){
-   const hrs=game.focus[group[0]]||0;
-   const inc=(base/GROUPS[game.pos].length+extra*hrs/Math.max(1,plan.training||7))*efficiency;
-   for(let i=0;i<group[2].length;i++){
-     const key=group[2][i];game.progress[key]=(game.progress[key]||0)+inc*(i===0?1:.6)*cl((105-game.attrs[key])/65,.35,1.35);
-     let gained=0;while(game.progress[key]>=12&&game.attrs[key]<99){game.attrs[key]++;game.progress[key]-=12;gained++;}
-     if(gained)logs.push(key+' +'+gained);
-   }
- }
+ // One development routine for every level (50-training.js); college coaching/facilities enter through trainingCoachFactor().
+ const logs=developWeek();
  if(logs.length)c.history.unshift('College development: '+logs.join(', ')+'.');
  c.gpa=cl(Math.round((c.gpa+(game.iq-50)/3200+(plan.study-6)*.008-game.stress/8000)*1000)/1000,0,4);
  game.stress=cl(game.stress+Math.max(0,plan.training-14)*.3-plan.recovery*.11+1,0,100);

@@ -165,19 +165,19 @@ function simulateGame(){
   const snapShare=role==='Starter'?.82:role==='Rotation'?.45:role==='Backup'?.16:.04;
   if(active && DEFENSIVE_POSITIONS.includes(game.pos)){
     stats.defSnaps=Math.round(R(45,68)*snapShare);
-    const pursuit=((game.attrs.speed||38)+(game.attrs.vision||38)+(game.attrs.power||38))/3;
+    const pursuit=rating(game.attrs,game.pos);
     const tackleOdds=cl(.075+(pursuit-45)/730,.025,.20);
     for(let i=0;i<stats.defSnaps;i++){
       const q=1+Math.floor(i/Math.max(1,stats.defSnaps/4));
       if(Math.random()<tackleOdds){stats.tackles++;if(Math.random()<.16){stats.tfl++;log.push('Q'+Math.min(q,4)+' · Tackle for loss.');}}
-      if(['DE','DT','NT','OLB','ILB','MLB'].includes(game.pos)&&Math.random()<cl(.018+(game.attrs.accel-45)/1800,.004,.05)){
+      if(['DE','DT','NT','OLB','ILB','MLB'].includes(game.pos)&&Math.random()<cl(.018+(skillValue('passRush')-45)/1800,.004,.05)){
         stats.pressures++;if(Math.random()<.28){stats.sacks++;log.push('Q'+Math.min(q,4)+' · Quarterback sack.');}}
       if(['CB','FS','SS','OLB','ILB','MLB'].includes(game.pos)&&Math.random()<.016){stats.passDef++;if(Math.random()<.18){stats.defInt++;log.push('Q'+Math.min(q,4)+' · Interception made.');}else log.push('Q'+Math.min(q,4)+' · Pass breakup.');}
     }
     if(stats.tackles)log.push('Defensive totals · '+stats.tackles+' tackles, '+stats.tfl+' TFL, '+stats.sacks+' sacks.');
   }else if(active&&LINEMEN.includes(game.pos)){
     stats.offSnaps=Math.round(offensePlays*snapShare);
-    const anchorStrength=((game.attrs.blocking||38)+(game.attrs.power||38)+(game.attrs.awareness||38))/3;
+    const anchorStrength=rating(game.attrs,game.pos);
     stats.blocks=Math.round(stats.offSnaps*cl(.4+(anchorStrength-45)/220,.15,.8));
     stats.pressures=Math.max(0,Math.round(stats.offSnaps*cl(.09-(anchorStrength-50)/680,.01,.20)));
     log.push('Offensive line · '+stats.offSnaps+' snaps, '+stats.blocks+' successful blocks, '+stats.pressures+' pressures allowed.');
@@ -185,12 +185,12 @@ function simulateGame(){
     stats.stSnaps=Math.round(R(6,13)*snapShare);
     if(game.pos==='K'){
       stats.fgAtt=Math.round(stats.stSnaps/3);stats.xpAtt=Math.round(stats.stSnaps/3);
-      const odds=cl(.55+(game.attrs.accuracy-45)/220,.35,.93);
+      const odds=cl(.55+((skillValue('kickAccuracy')*.6+skillValue('kickPower')*.4)-45)/220,.35,.93);
       for(let i=0;i<stats.fgAtt;i++)if(Math.random()<odds){stats.fgMade++;gameScore+=3;}
       for(let i=0;i<stats.xpAtt;i++)if(Math.random()<cl(odds+.12,.5,.99)){stats.xpMade++;gameScore+=1;}
       log.push('Kicking · '+stats.fgMade+'/'+stats.fgAtt+' FG; '+stats.xpMade+'/'+stats.xpAtt+' PAT.');
     }else if(game.pos==='P'){
-      stats.punts=Math.max(1,Math.round(stats.stSnaps/2));stats.puntYards=stats.punts*cl(Math.round(31+(game.attrs.power-38)/5),24,55);
+      stats.punts=Math.max(1,Math.round(stats.stSnaps/2));stats.puntYards=stats.punts*cl(Math.round(31+((skillValue('kickPower')+skillValue('puntTechnique'))/2-38)/5),24,55);
       log.push('Punting · '+stats.punts+' punts for '+stats.puntYards+' yards.');
     }else{stats.longSnaps=stats.stSnaps;log.push('Long snapping · '+stats.longSnaps+' snaps.');}
   }

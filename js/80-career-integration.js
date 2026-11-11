@@ -55,9 +55,9 @@ developScreen=function(){
  )+panel('Individual training · '+game.plan.training+' hours',
   '<p>Training hours count toward weekly attribute progress. Focus the hours on the skills you want to improve.</p>'+
   '<div class="line"><strong>'+focusTotal()+' / '+game.plan.training+' assigned</strong></div>'+
-  GROUPS[game.pos].map(g=>rang(g[1],game.focus[g[0]],0,game.plan.training,"setFocus('"+g[0]+"',+this.value)",'h')).join('')+
+  trainingGroups().map(g=>rang(g[1]+' ('+g[2].map(skillLabel).join(', ')+')',game.focus[g[0]],0,game.plan.training,"setFocus('"+g[0]+"',+this.value)",'h')).join('')+
   rang('Training intensity',game.extraIntensity,0,4,"setIntensity('extraIntensity',+this.value)")
- )+panel('Player attributes','<div class="grid">'+ATTRS.map(k=>'<div class="tile"><small>'+e(k)+'</small><div class="line"><strong>'+game.attrs[k]+'</strong><small>'+Math.round((game.progress[k]||0)/12*100)+'% to next</small></div></div>').join('')+'</div>')+healthPanel();
+ )+panel('Player attributes',playerSkillPanelHtml(true))+healthPanel();
 };
 // Legacy school commitments are removed once for existing NFL players.
 function v603NormalizeProPlan(){
@@ -69,30 +69,6 @@ function v603NormalizeProPlan(){
  game.v603ProPlanMigrated=true;
  persist();
 }
-// NFL development remains a mix of club practices and extra focused training.
-// Preserve baseline growth; make intentional weekly training count more, with fatigue penalties.
-const v603OldNFLDevelopment=v6NFLDevelopment;
-v6NFLDevelopment=function(){
- v603CareerSync();
- v603OldNFLDevelopment();
- if(!v603IsPro())return;
- const groups=GROUPS[game.pos]||[], focus=game.focus||{};
- const fatigueFactor=cl(1-Number(game.fatigue||0)/145,.25,1);
- const recovery=Number(game.plan?.recovery||0);
- const intensity=Number(game.extraIntensity||2);
- for(const g of groups){
-  const hours=Math.max(0,Number(focus[g[0]]||0));if(!hours)continue;
-  const gain=hours*.31*fatigueFactor*(.85+intensity*.12)*(game.gymWeeks>0?1.12:1);
-  for(const a of g[2]){
-   if(!Number.isFinite(game.attrs[a])||game.attrs[a]>=99)continue;
-   game.progress[a]=(Number(game.progress[a])||0)+gain;
-   while(game.progress[a]>=12&&game.attrs[a]<99){game.attrs[a]++;game.progress[a]-=12;}
-  }
- }
- if(recovery>=5){game.fatigue=cl(game.fatigue-Math.min(7,recovery*.3),0,100);}
- for(const [modern,old] of Object.entries({speed:'speed',accel:'accel',agility:'agility',strength:'power',stamina:'endurance'}))if(game.athleticAttributes&&Number.isFinite(game.attrs[old]))game.athleticAttributes[modern]=game.attrs[old];
- for(const [modern,old] of Object.entries({vision:'vision',carrying:'carrying',catching:'catching',elusiveness:'elusiveness',routes:'routes',release:'release',runBlocking:'blocking'}))if(game.technicalAttributes&&Number.isFinite(game.attrs[old]))game.technicalAttributes[modern]=game.attrs[old];
-};
 // Success and failure feedback for all purchase buttons, and for changes to weekly plans.
 const v603OldBuyItem=buyItem;
 buyItem=function(id){
@@ -197,20 +173,8 @@ function v603CollegeOffseasonWeek(){
  const plan=c.weeklyPlan||{training:11,study:8,recovery:9};
  const prior=game.fatigue;
  const training=Math.max(0,Number(plan.training||0)),recovery=Math.max(0,Number(plan.recovery||0));
- const fatigueImpact=cl(1-prior/150,.25,1);
- const efficiency=cl((.55+game.iq/200+game.morale/240-game.stress/450)*(c.program.coaching/70)*(c.program.facilities/75),.22,1.5)*fatigueImpact;
- const groups=GROUPS[game.pos]||[];let gains=[];
- const focusTotalHours=Math.max(1,groups.reduce((a,g)=>a+Number(game.focus?.[g[0]]||0),0));
- for(const g of groups){
-  const focused=Number(game.focus?.[g[0]]||0);
-  const groupHours=focused>0?training*focused/focusTotalHours:training/Math.max(1,groups.length)*.28;
-  for(const [i,attr] of g[2].entries()){
-   if(!Number.isFinite(game.attrs[attr])||game.attrs[attr]>=99)continue;
-   game.progress[attr]=(Number(game.progress[attr])||0)+groupHours*.42*efficiency*(i===0?1:.65);
-   let gained=0;while(game.progress[attr]>=12&&game.attrs[attr]<99){game.attrs[attr]++;game.progress[attr]-=12;gained++;}
-   if(gained)gains.push(attr+' +'+gained);
-  }
- }
+ c.weeklyPlan=c.weeklyPlan||plan;
+ const gains=developWeek();
  game.fatigue=cl(Math.round((prior+training*(.12+.09*Number(game.extraIntensity||2))-4.8-recovery*.7)*10)/10,0,100);
  const health=healthState();
  health.wear=cl(Math.round((health.wear-Math.max(.35,1.1+recovery*.17-training*.045))*100)/100,0,100);
@@ -241,63 +205,6 @@ collegeNextYear=function(){
   c.phase='complete';game.stage='collegeComplete';profileMilestone('college-completed','College football career completed','Finished at '+c.program.name+'.',{snapshot:true});persist();render();return;
  }
  v603CollegeNextOriginal();c.offseasonWeeks=0;persist();
-};
-// Unlike the old version, expiring contracts no longer skip every offseason week.
-v6NFLFinishSeason=function(){
- const n=v6League();n.seasonHistory.push({year:n.year,team:n.team?.name||'Free Agent',record:n.record.slice(),status:n.rosterStatus,games:n.games.filter(g=>g.year===n.year).length});
- n.phase='offseason';n.status='offseason';n.week=0;n.offseasonWeeks=0;
- n.contractYears=Math.max(0,n.contractYears-1);
- n.history.unshift('NFL Year '+n.year+' complete: '+n.record.join('–')+'. The full offseason calendar is available for preparation.');
- if(n.contractYears===0)n.news.unshift({title:'Contract expired',body:'Free agency will open during the offseason calendar.'});
- persist();
-};
-const v603NFLNextOriginal=v6NFLNextYear;
-v6NFLNextYear=function(){
- const n=v6League();if(n.phase!=='offseason')return;
- if(Number(n.offseasonWeeks||0)<careerOffseasonWeeks('nfl')){feedback='Complete '+(careerOffseasonWeeks('nfl')-Number(n.offseasonWeeks||0))+' more NFL offseason weeks.';render();return;}
- if(n.contractYears===0){if(!n.offers?.length)v6NFLOffers();feedback='Sign a free-agent contract to enter the next training camp.';render();return;}
-
- v603NFLNextOriginal();n.offseasonWeeks=0;persist();
-};
-function v603NFLOffseasonWeek(){
- const n=v6League();if(game.stage!=='nfl'||n.phase!=='offseason')return;
- n.offseasonWeeks=Number(n.offseasonWeeks||0);
- if(n.offseasonWeeks>=careerOffseasonWeeks('nfl')){feedback='NFL offseason complete. Continue to camp or free agency.';render();return;}
- const prev=game.fatigue,rest=Number(game.plan?.recovery||0),train=Number(game.plan?.training||0);
- // Uses the standard NFL player-development routine, including the established focused-training bonus.
- v6NFLDevelopment();
- game.fatigue=cl(Math.round((game.fatigue+train*(.11+.06*Number(game.extraIntensity||2))-5.5-rest*.82)*10)/10,0,100);
- const health=healthState();
- health.wear=cl(Math.round((health.wear-Math.max(.35,.95+rest*.16-train*.045))*100)/100,0,100);
- game.stress=cl(game.stress+.4+train*.04-rest*.13-Number(game.plan?.social||0)*.09,0,100);
- game.morale=cl(game.morale+Number(game.plan?.social||0)*.18+rest*.03,0,100);
- if(game.injury){game.injury.weeks=Math.max(0,game.injury.weeks-1);if(!game.injury.weeks)game.injury=null;}
- n.offseasonWeeks++;n.week=n.offseasonWeeks;
- if(n.offseasonWeeks===8&&n.contractYears===0){
-   v6NFLOffers();n.phase='offseason';n.status='freeAgency';
-   n.news.unshift({title:'Free agency opens',body:'Review contract offers during the offseason, then continue weekly preparation.'});
- }
- if(n.offseasonWeeks===12)n.news.unshift({title:'NFL Draft',body:'The annual rookie draft has concluded; clubs continue offseason roster evaluations.'});
- if(n.offseasonWeeks===19)n.news.unshift({title:'Organized team activities',body:'Teams hold practices and prepare their playbooks before training camp.'});
- n.history.unshift(careerCalendarPeriod('nfl',n.week)+' W'+n.week+': fatigue '+prev.toFixed(0)+' → '+game.fatigue.toFixed(0)+'; training completed.');
- n.history=n.history.slice(0,250);
- v603OffseasonNotice('NFL',n.week);persist();render();
-}
-// If users click the main hub action in the offseason, it advances one week rather than jumping a whole year.
-const v603NFLAdvanceOriginal=v6NFLAdvance;
-v6NFLAdvance=function(){const n=v6League();if(game.stage==='nfl'&&n.phase==='offseason')return v603NFLOffseasonWeek();return v603NFLAdvanceOriginal();};
-const v603ProCareerOriginal=v6ProCareer;
-v6ProCareer=function(n){
- let out=v603ProCareerOriginal(n);
- if(n.phase!=='offseason')return out;
- const w=Number(n.offseasonWeeks||0),remaining=careerOffseasonWeeks('nfl')-w;
- const description='<div class="v6-surface"><strong>NFL annual calendar · '+w+'/'+careerOffseasonWeeks('nfl')+' weeks complete</strong><p>Use Develop to choose training, social time and recovery. Each completed week improves skills and allows fatigue to recover. Current fatigue: '+Math.round(game.fatigue)+'.</p><p>Contract: '+(n.contractYears?'Continue with '+e(n.team?.name||'your club'):'Free agency opens in week 8')+'.</p></div>';
- out=out.replace('Start Next Camp','Advance Offseason Week');
- out=out.replace('<div class="v6-surface"><strong>Game Plan</strong>',description+'<div class="v6-surface"><strong>Game Plan</strong>');
- out=out.replace('onclick="v6NFLAdvance()"', 'onclick="v6NFLAdvance()"');
- if(n.status==='freeAgency'&&n.offers?.length)out+='<div class="v6-surface"><strong>Free agency offers</strong>'+n.offers.map(o=>{const t=n.proTeams.find(x=>x.id===o.teamId);return '<button onclick="v6NFLSign('+o.teamId+')">'+e(t?.name||'Club')+' · $'+o.yearly.toLocaleString()+'/yr</button>';}).join('')+'</div>';
- if(remaining===0)out=out.replace('Advance Offseason Week','Finish Offseason / Begin Camp').replace('v6NFLAdvance()','v6NFLNextYear()');
- return out;
 };
 
 
@@ -411,14 +318,6 @@ function v603PlayCollegeShowcase(){
  feedback=name+' completed: '+grade+' showing; +'+boost+' draft scouting points, +4 fatigue.';
  persist();render();
 }
-const v603HonorsDraftRatingOriginal=v6ProRating;
-v6ProRating=function(){
- const ratingValue=v603HonorsDraftRatingOriginal();
- const c=game?.college;
- const best=Array.isArray(c?.showcases)?Math.max(0,...c.showcases.map(x=>Number(x.scoutingBoost||0))):0;
- const seasonHonors=Array.isArray(c?.honors)?c.honors.filter(h=>h.kind==='season'&&(/All-American|Player of the Year| of the Year/.test(h.title))).length:0;
- return cl(ratingValue+best+Math.min(3,seasonHonors),30,99);
-};
 function v603CollegeHonorsPanel(){
  const c=v603HonorState();if(!c)return '';
  const awards=[...c.honors].sort((a,b)=>b.year-a.year||({'season':0,'showcase':1,'weekly':2}[a.kind]-{'season':0,'showcase':1,'weekly':2}[b.kind]));

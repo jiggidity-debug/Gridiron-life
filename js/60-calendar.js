@@ -30,6 +30,12 @@ function archiveFootballSeason(){
   game.seasonHistory.push({year:game.year,grade:game.grade,records:JSON.parse(JSON.stringify(game.squadRecords||emptySquadRecords())),games:seasonGames().length,postseason:game.competition?.postseason?{status:game.competition.postseason.status,districtPlace:game.competition.postseason.districtPlace,champion:game.competition.postseason.championId?findBracketTeam(game.competition.postseason,game.competition.postseason.championId)?.name:null,rounds:JSON.parse(JSON.stringify(game.competition.postseason.rounds)),teams:JSON.parse(JSON.stringify(game.competition.postseason.teams))}:null});
 }
 function startNextSchoolYear(){
+  // Preserve each graduating teammate's final GPA before changing grades.
+  if(game.team)for(const npc of game.team){
+    const academics=v601Academic(npc);
+    if(!academics.history)academics.history=[];
+    if(!academics.history.some(h=>h.grade===npc.grade))academics.history.push({grade:npc.grade,gpa:academics.gpa});
+  }
   if(game.grade>=12){profileMilestone('graduation','High school graduation','Completed high school at '+game.school.name+'.',{snapshot:true});collegeReadyFromGraduation();return}
   const turnover=annualRosterTurnover();
   game.grade++;game.year++;game.placement=null;
@@ -53,6 +59,11 @@ function stressBreakdown(){
     total:1+academic+intensity+extraTraining+job+family-social-recovery};
 }
 function applyWeek(){
+  // Single weekly HS flow: academics, teammate development and physical growth
+  // precede the original week simulation; pro knowledge load follows it.
+  v601UpdateAcademics();
+  if(!['college','nfl','recruiting'].includes(game.stage))npcDevelopWeek(game.school);
+  growthHSWeek();
   let d=depth();game.role=d.role;
   simulateSevenOnSevenWeek();
   healthWeek();
@@ -79,6 +90,7 @@ function applyWeek(){
   if(endingPhase===2&&endingWeek===PHASES[2].weeks)finalizeSemester('Spring');
   if(finishFall){game.endFallAfterThisWeek=false;advancePhase()}else if(game.week>PHASES[game.phase].weeks)advancePhase();
   persist();
+  v6LoadChange(false);
 }
 function advancePhase(){
   let last=PHASES[game.phase].name;

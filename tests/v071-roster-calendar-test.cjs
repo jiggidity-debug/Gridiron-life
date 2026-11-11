@@ -31,7 +31,7 @@ assert.equal(result.runPlays+result.passPlays,result.plays?result.runPlays+resul
 // the offseason calendar continues, instead of skipping straight to camp.
 E('game=JSON.parse('+JSON.stringify(JSON.stringify(save))+');game.stage="nfl";');
 E("(()=>{let n=v6League();n.phase='offseason';n.status='offseason';n.year=2;n.offseasonWeeks=7;n.week=7;n.team=n.proTeams[0];n.contractYears=0;n.games=[];n.offers=[];game.plan={training:3,study:0,work:0,social:0,recovery:9};return true})()");
-E('v603NFLOffseasonWeek()');
+E('v6NFLOffseasonWeek()');
 assert.equal(E('v6League().offseasonWeeks'),8);
 assert.equal(E('v6League().phase'),'offseason');
 assert.equal(E('v6League().status'),'freeAgency');

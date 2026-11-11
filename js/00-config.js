@@ -19,6 +19,14 @@ const newGroups={
 };
 for(const [pos,family] of Object.entries(POSITION_FAMILIES))if(!GROUPS[pos])GROUPS[pos]=newGroups[family]||baseGroups.RB;
 const ATTRS=[...new Set(Object.values(GROUPS).flatMap(g=>g.flatMap(x=>x[2])))];
+// Player skill vocabulary. Physical attributes, technical skills and scheme knowledge
+// are three separate stores: game.athleticAttributes, game.technicalAttributes and
+// game.v6 (schemeKnowledge/techniques). GROUPS above is the legacy 15-key vocabulary
+// that persistent NPC players use; ATTRS/game.attrs are a derived view for the
+// football simulators (see syncLegacyAttrs in 50-training.js).
+const PHYSICAL_ATTRIBUTES=['speed','accel','agility','strength','jumping','stamina'];
+const TECHNICAL_SKILLS=['throwPower','shortAccuracy','deepAccuracy','decisionMaking','pocketPresence','ballHandling','catching','routes','release','vision','elusiveness','carrying','breakTackle','runBlocking','passBlocking','blockTechnique','blockRecognition','tackling','blockShedding','passRush','runDefense','manCoverage','zoneCoverage','pressCoverage','playRecognition','ballSkills','kickPower','kickAccuracy','puntTechnique'];
+const LEGACY_PROXY={speed:'speed',accel:'accel',agility:'agility',elusiveness:'elusiveness',vision:'vision',carrying:'carrying',catching:'catching',routes:'routes',release:'release',power:'strength',endurance:'stamina',accuracy:'shortAccuracy',arm:'throwPower',awareness:'decisionMaking',blocking:'runBlocking'};
 const BG=[['working','Working-class household',75,8,'Limited resources; family may need your earnings'],['athletic','Football family',220,14,'Early exposure and higher expectations'],['comfortable','Comfortable household',380,10,'More financial support and academic expectations'],['community','Community-oriented family',125,4,'Supportive neighbors and social connections'],['independent','Independent upbringing',100,5,'More self-direction and responsibility']];
 const SCHEMES=[['Wishbone',.80,.45],['Power Run',.72,.62],['Pro Style',.55,.55],['Spread',.41,.60],['Air Raid',.25,.64],['West Coast',.44,.57]];
 const NAMES=['Westfield Wolves','Briar Creek Bears','Oak Ridge Eagles','Northgate Knights','Cedar Valley Lions','Red Rock Raiders','Hampton Hawks','Pine Lake Panthers','Summit Tigers','Eastbrook Mustangs'];

@@ -35,10 +35,8 @@ function profileStatLine(s,pos){
   return s.receptions+' receptions · '+s.recYards+' yards · '+s.recTD+' receiving TD · '+s.carries+' rushes';
 }
 function profileTraits(){
-  const keys=[...new Set(GROUPS[game.pos].flatMap(g=>g[2]))];
-  const ordered=keys.map(k=>({key:k,value:Number(game.attrs[k]||0)})).sort((a,b)=>b.value-a.value||a.key.localeCompare(b.key));
-  const pretty=s=>s.replace(/\b\w/g,c=>c.toUpperCase());
-  return {best:ordered.slice(0,3).map(x=>({...x,label:pretty(x.key)})),develop:ordered.slice(-2).reverse().map(x=>({...x,label:pretty(x.key)}))};
+  const ordered=trainingSkillKeys().map(k=>({key:k,value:skillValue(k)})).sort((a,b)=>b.value-a.value||a.key.localeCompare(b.key));
+  return {best:ordered.slice(0,3).map(x=>({...x,label:skillLabel(x.key)})),develop:ordered.slice(-2).reverse().map(x=>({...x,label:skillLabel(x.key)}))};
 }
 function profileBio(){
   const p=profileState(),all=profileStats(profileGames()),thisYear=profileStats(profileGames().filter(g=>g.year===game.year)),d=depth(),r=rating(game.attrs,game.pos),traits=profileTraits();
